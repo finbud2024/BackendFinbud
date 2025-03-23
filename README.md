@@ -7,6 +7,7 @@ This document provides comprehensive documentation for the FinBud API, covering 
 - [Authentication](#authentication)
 - [Users](#users)
 - [Transactions](#transactions)
+- [Goals](#goals)
 - [Error Handling](#error-handling)
 - [Getting Started](#getting-started)
 
@@ -646,6 +647,375 @@ Deletes all transactions in the system.
 **Error Response**:
 
 - **Code**: 401 UNAUTHORIZED or 403 FORBIDDEN
+
+## Goals
+
+This section documents the goal management endpoints. The API provides separate endpoints for regular users and administrators.
+
+### Frontend-Friendly Endpoints
+
+These endpoints are designed for use in frontend applications, allowing users to manage their own goals.
+
+#### Create a New Goal
+
+Creates a new goal for the authenticated user.
+
+**URL**: `/goals`
+
+**Method**: `POST`
+
+**Auth required**: Yes (JWT token)
+
+**Request Body**:
+```json
+{
+  "title": "Save for vacation",
+  "description": "Summer trip to Hawaii",
+  "targetAmount": 5000,
+  "currentAmount": 500,
+  "startDate": "2023-01-01T00:00:00.000Z",
+  "endDate": "2023-12-31T00:00:00.000Z",
+  "category": "Travel"
+}
+```
+
+**Required Fields**:
+- `title` (string): Name of the goal
+- `targetAmount` (number): Target amount to save
+- `startDate` (Date): When the goal starts
+- `endDate` (Date): Deadline for the goal
+- `category` (string): Goal category
+
+**Optional Fields**:
+- `description` (string): Additional details about the goal
+- `currentAmount` (number): Current progress (defaults to 0)
+- `isAchieved` (boolean): Whether the goal is achieved (defaults to false)
+
+**Success Response**:
+- **Code**: 201 CREATED
+- **Content**: The created goal object
+
+#### Get All My Goals
+
+Retrieves all goals for the authenticated user.
+
+**URL**: `/goals/me`
+
+**Method**: `GET`
+
+**Auth required**: Yes (JWT token)
+
+**Success Response**:
+- **Code**: 200 OK
+- **Content**: Array of goal objects, sorted by closest deadline first
+
+#### Get My Achieved Goals
+
+Retrieves all achieved goals for the authenticated user.
+
+**URL**: `/goals/me/achieved`
+
+**Method**: `GET`
+
+**Auth required**: Yes (JWT token)
+
+**Success Response**:
+- **Code**: 200 OK
+- **Content**: Array of goal objects where `isAchieved` is true
+
+#### Get My In-Progress Goals
+
+Retrieves all in-progress goals for the authenticated user.
+
+**URL**: `/goals/me/in-progress`
+
+**Method**: `GET`
+
+**Auth required**: Yes (JWT token)
+
+**Success Response**:
+- **Code**: 200 OK
+- **Content**: Array of goal objects where `isAchieved` is false
+
+#### Get My Upcoming Goals
+
+Retrieves goals with deadlines approaching within the specified number of days.
+
+**URL**: `/goals/me/upcoming`
+
+**Method**: `GET`
+
+**Auth required**: Yes (JWT token)
+
+**Query Parameters**:
+- `days` (number, optional): Number of days to consider as "upcoming" (default: 30)
+
+**Success Response**:
+- **Code**: 200 OK
+- **Content**: Array of goal objects with deadlines within the specified timeframe
+
+#### Get a Specific Goal
+
+Retrieves a specific goal by ID if it belongs to the authenticated user.
+
+**URL**: `/goals/me/:id`
+
+**Method**: `GET`
+
+**Auth required**: Yes (JWT token)
+
+**Path Parameters**:
+- `id` (string): Goal ID
+
+**Success Response**:
+- **Code**: 200 OK
+- **Content**: Goal object
+
+**Error Response**:
+- **Code**: 404 NOT FOUND
+- **Content**: Error message indicating the goal was not found or doesn't belong to the user
+
+#### Update a Goal
+
+Updates a specific goal if it belongs to the authenticated user.
+
+**URL**: `/goals/me/:id`
+
+**Method**: `PATCH`
+
+**Auth required**: Yes (JWT token)
+
+**Path Parameters**:
+- `id` (string): Goal ID
+
+**Request Body**: Any combination of goal fields to update:
+```json
+{
+  "title": "Updated title",
+  "description": "Updated description",
+  "targetAmount": 6000,
+  "endDate": "2024-06-30T00:00:00.000Z",
+  "category": "Updated category"
+}
+```
+
+**Success Response**:
+- **Code**: 200 OK
+- **Content**: Updated goal object
+
+**Error Response**:
+- **Code**: 404 NOT FOUND
+- **Content**: Error message indicating the goal was not found or doesn't belong to the user
+
+#### Update Goal Progress
+
+Updates the current amount of a goal and automatically updates the achievement status.
+
+**URL**: `/goals/me/:id/progress`
+
+**Method**: `PATCH`
+
+**Auth required**: Yes (JWT token)
+
+**Path Parameters**:
+- `id` (string): Goal ID
+
+**Request Body**:
+```json
+{
+  "currentAmount": 3000
+}
+```
+
+**Required Fields**:
+- `currentAmount` (number): New current amount value
+
+**Success Response**:
+- **Code**: 200 OK
+- **Content**: Updated goal object
+
+**Error Response**:
+- **Code**: 404 NOT FOUND
+- **Content**: Error message indicating the goal was not found or doesn't belong to the user
+
+#### Delete a Goal
+
+Deletes a specific goal if it belongs to the authenticated user.
+
+**URL**: `/goals/me/:id`
+
+**Method**: `DELETE`
+
+**Auth required**: Yes (JWT token)
+
+**Path Parameters**:
+- `id` (string): Goal ID
+
+**Success Response**:
+- **Code**: 204 NO CONTENT
+
+**Error Response**:
+- **Code**: 404 NOT FOUND
+- **Content**: Error message indicating the goal was not found or doesn't belong to the user
+
+#### Delete All My Goals
+
+Deletes all goals belonging to the authenticated user.
+
+**URL**: `/goals/me`
+
+**Method**: `DELETE`
+
+**Auth required**: Yes (JWT token)
+
+**Success Response**:
+- **Code**: 200 OK
+- **Content**:
+```json
+{
+  "message": "Successfully deleted X goals"
+}
+```
+
+### Admin-Only Endpoints
+
+These endpoints are restricted to users with admin privileges.
+
+#### Get All Goals
+
+Retrieves all goals in the system.
+
+**URL**: `/goals`
+
+**Method**: `GET`
+
+**Auth required**: Yes (JWT token with admin privileges)
+
+**Success Response**:
+- **Code**: 200 OK
+- **Content**: Array of all goal objects
+
+#### Get Goals for a Specific User
+
+Retrieves all goals for a specified user.
+
+**URL**: `/goals/user/:userId`
+
+**Method**: `GET`
+
+**Auth required**: Yes (JWT token with admin privileges)
+
+**Path Parameters**:
+- `userId` (string): User ID
+
+**Success Response**:
+- **Code**: 200 OK
+- **Content**: Array of goal objects for the specified user
+
+#### Get a Specific Goal (Admin)
+
+Retrieves a specific goal by ID (admin access).
+
+**URL**: `/goals/:id`
+
+**Method**: `GET`
+
+**Auth required**: Yes (JWT token with admin privileges)
+
+**Path Parameters**:
+- `id` (string): Goal ID
+
+**Success Response**:
+- **Code**: 200 OK
+- **Content**: Goal object
+
+**Error Response**:
+- **Code**: 404 NOT FOUND
+- **Content**: Error message indicating the goal was not found
+
+#### Update a Goal (Admin)
+
+Updates a specific goal (admin access).
+
+**URL**: `/goals/:id`
+
+**Method**: `PATCH`
+
+**Auth required**: Yes (JWT token with admin privileges)
+
+**Path Parameters**:
+- `id` (string): Goal ID
+
+**Request Body**: Any combination of goal fields to update
+
+**Success Response**:
+- **Code**: 200 OK
+- **Content**: Updated goal object
+
+**Error Response**:
+- **Code**: 404 NOT FOUND
+- **Content**: Error message indicating the goal was not found
+
+#### Delete a Goal (Admin)
+
+Deletes a specific goal (admin access).
+
+**URL**: `/goals/:id`
+
+**Method**: `DELETE`
+
+**Auth required**: Yes (JWT token with admin privileges)
+
+**Path Parameters**:
+- `id` (string): Goal ID
+
+**Success Response**:
+- **Code**: 204 NO CONTENT
+
+**Error Response**:
+- **Code**: 404 NOT FOUND
+- **Content**: Error message indicating the goal was not found
+
+#### Delete All Goals for a User
+
+Deletes all goals for a specified user.
+
+**URL**: `/goals/user/:userId`
+
+**Method**: `DELETE`
+
+**Auth required**: Yes (JWT token with admin privileges)
+
+**Path Parameters**:
+- `userId` (string): User ID
+
+**Success Response**:
+- **Code**: 200 OK
+- **Content**:
+```json
+{
+  "message": "Successfully deleted X goals"
+}
+```
+
+### Goal Object Structure
+
+```json
+{
+  "_id": "60d21b4667d0d8992e610c85",
+  "userId": "60d21b4667d0d8992e610c80",
+  "title": "Save for vacation",
+  "description": "Summer trip to Hawaii",
+  "targetAmount": 5000,
+  "currentAmount": 500,
+  "startDate": "2023-01-01T00:00:00.000Z",
+  "endDate": "2023-12-31T00:00:00.000Z",
+  "isAchieved": false,
+  "category": "Travel",
+  "createdAt": "2023-01-01T00:00:00.000Z",
+  "updatedAt": "2023-01-10T00:00:00.000Z"
+}
+```
 
 ## Error Handling
 

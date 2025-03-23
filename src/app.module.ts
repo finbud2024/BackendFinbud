@@ -10,6 +10,7 @@ import { GlobalExceptionFilter } from './common/filters/http-exception.filter';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { TransactionsModule } from './modules/transactions/transactions.module';
+import { GoalsModule } from './modules/goals/goals.module';
 
 // Config
 import { getMongoConfig } from './config/database/mongoose.config';
@@ -32,6 +33,7 @@ import { getMongoConfig } from './config/database/mongoose.config';
     UsersModule,
     AuthModule,
     TransactionsModule,
+    GoalsModule,
   ],
   controllers: [AppController],
   providers: [

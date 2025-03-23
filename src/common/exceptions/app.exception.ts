@@ -21,7 +21,15 @@ export enum ErrorCode {
   TRANSACTION_UPDATE_FAILED = 'TRANSACTION_UPDATE_FAILED',
   TRANSACTION_DELETE_FAILED = 'TRANSACTION_DELETE_FAILED',
   INVALID_TRANSACTION_DATA = 'INVALID_TRANSACTION_DATA',
-  TRANSACTION_BALANCE_RECALCULATION_FAILED = 'TRANSACTION_BALANCE_RECALCULATION_FAILED'
+  TRANSACTION_BALANCE_RECALCULATION_FAILED = 'TRANSACTION_BALANCE_RECALCULATION_FAILED',
+  
+  // Goal errors
+  GOAL_NOT_FOUND = 'GOAL_NOT_FOUND',
+  GOAL_CREATE_FAILED = 'GOAL_CREATE_FAILED',
+  GOAL_UPDATE_FAILED = 'GOAL_UPDATE_FAILED',
+  GOAL_DELETE_FAILED = 'GOAL_DELETE_FAILED',
+  INVALID_GOAL_DATA = 'INVALID_GOAL_DATA',
+  GOAL_DEADLINE_PAST = 'GOAL_DEADLINE_PAST'
 }
 
 export class AppException extends HttpException {
@@ -109,5 +117,30 @@ export class ExceptionFactory {
   
   static transactionBalanceRecalculationFailed(userId: string, message = 'Failed to recalculate balances'): AppException {
     return new AppException(`Failed to recalculate balances for user ${userId}: ${message}`, HttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.TRANSACTION_BALANCE_RECALCULATION_FAILED);
+  }
+  
+  // Goal exceptions
+  static goalNotFound(id: string): AppException {
+    return new AppException(`Goal with ID ${id} not found`, HttpStatus.NOT_FOUND, ErrorCode.GOAL_NOT_FOUND);
+  }
+  
+  static goalCreateFailed(message = 'Failed to create goal'): AppException {
+    return new AppException(message, HttpStatus.BAD_REQUEST, ErrorCode.GOAL_CREATE_FAILED);
+  }
+  
+  static goalUpdateFailed(id: string, message = 'Failed to update goal'): AppException {
+    return new AppException(`Failed to update goal with ID ${id}: ${message}`, HttpStatus.BAD_REQUEST, ErrorCode.GOAL_UPDATE_FAILED);
+  }
+  
+  static goalDeleteFailed(id: string, message = 'Failed to delete goal'): AppException {
+    return new AppException(`Failed to delete goal with ID ${id}: ${message}`, HttpStatus.BAD_REQUEST, ErrorCode.GOAL_DELETE_FAILED);
+  }
+  
+  static invalidGoalData(field: string): AppException {
+    return new AppException(`Invalid goal data: ${field} is required or has invalid format`, HttpStatus.BAD_REQUEST, ErrorCode.INVALID_GOAL_DATA);
+  }
+  
+  static goalDeadlinePast(date: Date): AppException {
+    return new AppException(`Goal deadline cannot be in the past: ${date.toISOString()}`, HttpStatus.BAD_REQUEST, ErrorCode.GOAL_DEADLINE_PAST);
   }
 } 
