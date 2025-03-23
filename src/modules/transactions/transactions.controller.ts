@@ -17,7 +17,6 @@ import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { UpdateTransactionDto } from './dto/update-transaction.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { AdminGuard } from '../../common/guards/admin.guard';
-import { OwnerOrAdminGuard } from '../../common/guards/owner-or-admin.guard';
 import { UserRole } from '../../common/decorators/user-role.decorator';
 import { TransactionDocument } from './entities/transaction.entity';
 import { Request } from 'express';
@@ -71,12 +70,21 @@ export class TransactionsController {
   }
 
   @Get('u/:userId')
-  @UseGuards(OwnerOrAdminGuard)
+  @UseGuards(JwtAuthGuard)
   async findAllForUser(
     @Param('userId') userId: string,
-    @UserRole() userRole: string,
     @Req() request: Request,
   ) {
+    // Get the authenticated user
+    const user = request.user as any;
+    const isAdmin = user.accountData?.priviledge === 'admin';
+    
+    // Only allow access if the user is viewing their own transactions or is an admin
+    if (userId !== user.userId && !isAdmin) {
+      this.logger.warn(`User ${user.userId} attempted to access transactions for user ${userId}`);
+      throw ExceptionFactory.forbidden('User-specific resource');
+    }
+    
     const effectiveUserId = userId === 'self' 
       ? this.getUserIdFromRequest(request) 
       : userId;
@@ -86,82 +94,12 @@ export class TransactionsController {
     return this.transactionsService.getTransactionsWithBalances(effectiveUserId);
   }
 
-  @Get(':id')
-  @UseGuards(OwnerOrAdminGuard)
-  async findOne(
-    @Param('id') id: string,
-    @UserRole() userRole: string,
-  ) {
-    this.logger.log(`Finding transaction with ID ${id}`);
-    
-    const transaction = await this.transactionsService.findById(id);
-    
-    // Check if transaction exists
-    if (!transaction) {
-      throw ExceptionFactory.transactionNotFound(id);
-    }
-    
-    return transaction;
-  }
-
-  @Patch(':id')
-  @UseGuards(OwnerOrAdminGuard)
-  async update(
-    @Param('id') id: string,
-    @Body() updateTransactionDto: UpdateTransactionDto,
-    @UserRole() userRole: string,
-    @Req() request: Request,
-  ) {
-    this.logger.log(`Updating transaction with ID ${id}`);
-    
-    // Validate that at least one field to update is provided
-    if (!updateTransactionDto.description && updateTransactionDto.amount === undefined) {
-      throw ExceptionFactory.invalidTransactionData('at least one field (description or amount)');
-    }
-    
-    // Find the transaction to check existence
-    const transaction = await this.transactionsService.findById(id);
-    
-    // Check if transaction exists
-    if (!transaction) {
-      throw ExceptionFactory.transactionNotFound(id);
-    }
-    
-    // Prevent changing userId for non-admin users
-    if (updateTransactionDto.userId && 
-        userRole !== 'admin' && 
-        updateTransactionDto.userId !== this.getUserIdFromRequest(request)) {
-      throw ExceptionFactory.invalidTransactionData('userId cannot be changed by non-admin users');
-    }
-    
-    // Update the transaction
-    const updated = await this.transactionsService.update(id, updateTransactionDto);
-    
-    // Return the updated transaction
-    return updated;
-  }
-
-  @Delete(':id')
-  @UseGuards(OwnerOrAdminGuard)
+  @Delete('all')
+  @UseGuards(AdminGuard)
   @HttpCode(HttpStatus.NO_CONTENT)
-  async remove(
-    @Param('id') id: string,
-    @UserRole() userRole: string,
-  ) {
-    this.logger.log(`Removing transaction with ID ${id}`);
-    
-    // Find the transaction to check existence
-    const transaction = await this.transactionsService.findById(id);
-    
-    // Check if transaction exists
-    if (!transaction) {
-      throw ExceptionFactory.transactionNotFound(id);
-    }
-    
-    // Remove the transaction
-    await this.transactionsService.remove(id);
-    
-    // No content response (204)
+  async removeAll() {
+    this.logger.log('Removing all transactions (admin only)');
+    await this.transactionsService.removeMany({});
     return;
   }
 
@@ -183,12 +121,124 @@ export class TransactionsController {
     return { message: `Successfully deleted ${count} transactions` };
   }
 
-  @Delete('all')
-  @UseGuards(AdminGuard)
+  @Get(':id')
+  @UseGuards(JwtAuthGuard)
+  async findOne(
+    @Param('id') id: string,
+    @Req() request: Request,
+  ) {
+    this.logger.log(`Finding transaction with ID ${id}`);
+    
+    // Get the authenticated user
+    const user = request.user as any;
+    this.logger.debug(`User from request: ${JSON.stringify(user)}`);
+    
+    // Get the transaction
+    const transaction = await this.transactionsService.findById(id);
+    
+    // Check if transaction exists
+    if (!transaction) {
+      throw ExceptionFactory.transactionNotFound(id);
+    }
+    
+    this.logger.debug(`Transaction userId: ${transaction.userId} (${typeof transaction.userId})`);
+    this.logger.debug(`User userId: ${user.userId} (${typeof user.userId})`);
+    
+    // Check if user owns this transaction or is admin
+    const isOwner = transaction.userId.toString() === user.userId;
+    const isAdmin = user.accountData?.priviledge === 'admin';
+    
+    this.logger.debug(`Is owner: ${isOwner}, Is admin: ${isAdmin}`);
+    
+    if (!isOwner && !isAdmin) {
+      this.logger.warn(`User ${user.userId} attempted to access transaction ${id} belonging to user ${transaction.userId}`);
+      throw ExceptionFactory.forbidden('User-specific resource');
+    }
+    
+    return transaction;
+  }
+
+  @Patch(':id')
+  @UseGuards(JwtAuthGuard)
+  async update(
+    @Param('id') id: string,
+    @Body() updateTransactionDto: UpdateTransactionDto,
+    @Req() request: Request,
+  ) {
+    this.logger.log(`Updating transaction with ID ${id}`);
+    
+    // Get the authenticated user
+    const user = request.user as any;
+    
+    // Validate that at least one field to update is provided
+    if (!updateTransactionDto.description && updateTransactionDto.amount === undefined) {
+      throw ExceptionFactory.invalidTransactionData('at least one field (description or amount)');
+    }
+    
+    // Find the transaction to check existence
+    const transaction = await this.transactionsService.findById(id);
+    
+    // Check if transaction exists
+    if (!transaction) {
+      throw ExceptionFactory.transactionNotFound(id);
+    }
+    
+    // Check if user owns this transaction or is admin
+    const isOwner = transaction.userId.toString() === user.userId;
+    const isAdmin = user.accountData?.priviledge === 'admin';
+    
+    if (!isOwner && !isAdmin) {
+      this.logger.warn(`User ${user.userId} attempted to update transaction ${id} belonging to user ${transaction.userId}`);
+      throw ExceptionFactory.forbidden('User-specific resource');
+    }
+    
+    // Prevent changing userId for non-admin users
+    if (updateTransactionDto.userId && 
+        !isAdmin && 
+        updateTransactionDto.userId !== user.userId) {
+      throw ExceptionFactory.invalidTransactionData('userId cannot be changed by non-admin users');
+    }
+    
+    // Update the transaction
+    const updated = await this.transactionsService.update(id, updateTransactionDto);
+    
+    // Return the updated transaction
+    return updated;
+  }
+
+  @Delete(':id')
+  @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.NO_CONTENT)
-  async removeAll() {
-    this.logger.log('Removing all transactions (admin only)');
-    await this.transactionsService.removeMany({});
+  async remove(
+    @Param('id') id: string,
+    @Req() request: Request,
+  ) {
+    this.logger.log(`Removing transaction with ID ${id}`);
+    
+    // Get the authenticated user
+    const user = request.user as any;
+    
+    // Find the transaction to check existence
+    const transaction = await this.transactionsService.findById(id);
+    
+    // Check if transaction exists
+    if (!transaction) {
+      throw ExceptionFactory.transactionNotFound(id);
+    }
+    
+    // Check if user owns this transaction or is admin
+    const isOwner = transaction.userId.toString() === user.userId;
+    const isAdmin = user.accountData?.priviledge === 'admin';
+    
+    if (!isOwner && !isAdmin) {
+      this.logger.warn(`User ${user.userId} attempted to delete transaction ${id} belonging to user ${transaction.userId}`);
+      throw ExceptionFactory.forbidden('User-specific resource');
+    }
+    
+    // Remove the transaction
+    await this.transactionsService.remove(id);
+    
+    // No content response (204)
     return;
   }
   

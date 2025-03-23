@@ -22,6 +22,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
   async validate(payload: JwtPayload): Promise<AuthenticatedUser | null> {
     this.logger.debug(`Validating JWT for user ID: ${payload.sub}`);
+    this.logger.debug(`JWT payload: ${JSON.stringify(payload)}`);
     
     try {
       const user = await this.usersService.findById(payload.sub);
@@ -31,8 +32,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         return null;
       }
       
+      this.logger.debug(`Found user in database: ${user._id} with privilege: ${user.accountData.priviledge}`);
+      
       // Return user object with accountData containing privilege
-      return { 
+      const authUser = { 
         userId: payload.sub, 
         username: payload.username,
         accountData: {
@@ -40,6 +43,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
           priviledge: user.accountData.priviledge
         }
       };
+      
+      this.logger.debug(`Returning authenticated user: ${JSON.stringify(authUser)}`);
+      return authUser;
     } catch (error) {
       this.logger.error(`Error validating JWT: ${error.message}`);
       return null;
