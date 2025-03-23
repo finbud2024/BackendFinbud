@@ -6,6 +6,7 @@ import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { UpdateTransactionDto } from './dto/update-transaction.dto';
 import { ExceptionFactory } from '../../common/exceptions/app.exception';
 import { Types } from 'mongoose';
+import { TransactionType } from './entities/transaction.entity';
 
 @Injectable()
 export class TransactionsService extends BaseService<TransactionDocument> {
@@ -53,17 +54,36 @@ export class TransactionsService extends BaseService<TransactionDocument> {
     // If type is not provided, determine it based on amount
     if (!createTransactionDto.type) {
       createTransactionDto.type = 
-        createTransactionDto.amount >= 0 ? 'INCOME' : 'EXPENSE';
+        createTransactionDto.amount >= 0 ? TransactionType.INCOME : TransactionType.EXPENSE;
     }
-
-    // Create the transaction
-    const transaction = await super.create(createTransactionDto);
     
-    // Recalculate balances for all user transactions
-    await this.transactionsRepository.recalculateBalances(transaction.userId.toString());
+    // Always set an initial balance value (it will be recalculated immediately after creation)
+    // This satisfies the database schema requirement for balance to be present
+    if (createTransactionDto.balance === undefined) {
+      createTransactionDto.balance = 0;
+    }
     
-    // Fetch the transaction again to get the updated balance
-    return this.findById(transaction.id);
+    try {
+      // Ensure userId is a MongoDB ObjectId
+      if (typeof createTransactionDto.userId === 'string') {
+        createTransactionDto.userId = new Types.ObjectId(createTransactionDto.userId);
+      }
+      
+      // Create the transaction
+      const transaction = await super.create(createTransactionDto);
+      
+      // Recalculate balances for all user transactions
+      await this.transactionsRepository.recalculateBalances(transaction.userId.toString());
+      
+      // Fetch the transaction again to get the updated balance
+      return this.findById(transaction.id);
+    } catch (error) {
+      this.logger.error(`Error creating transaction: ${error.message}`);
+      if (error.message && error.message.includes('userId')) {
+        throw ExceptionFactory.invalidTransactionData('Valid userId is required');
+      }
+      throw error;
+    }
   }
 
   /**

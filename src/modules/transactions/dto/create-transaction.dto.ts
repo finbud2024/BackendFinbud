@@ -1,6 +1,7 @@
-import { IsString, IsNumber, IsNotEmpty, IsDate, IsOptional, IsEnum, IsMongoId } from 'class-validator';
+import { IsString, IsNumber, IsNotEmpty, IsDate, IsOptional, IsEnum } from 'class-validator';
 import { Type } from 'class-transformer';
 import { TransactionType } from '../entities/transaction.entity';
+import { Types } from 'mongoose';
 
 export class CreateTransactionDto {
   @IsString()
@@ -24,7 +25,6 @@ export class CreateTransactionDto {
   @IsOptional()
   type?: string;
 
-  @IsMongoId()
-  @IsNotEmpty()
-  userId: string;
+  @IsOptional()
+  userId?: string | Types.ObjectId;
 } 

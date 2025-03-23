@@ -379,7 +379,10 @@ Creates a new financial transaction.
 }
 ```
 
-> Note: Negative amounts represent expenses, positive amounts represent income.
+> Note: 
+> - Negative amounts represent expenses, positive amounts represent income.
+> - The user ID is **automatically set** from your authentication token - do not include it in the request.
+> - The transaction type (INCOME/EXPENSE) is automatically determined based on the amount if not specified.
 
 **Success Response**:
 
@@ -388,12 +391,12 @@ Creates a new financial transaction.
 
 ```json
 {
-  "id": "60d21b4667d0d8992e610c85",
+  "_id": "60d21b4667d0d8992e610c85",
   "description": "Grocery shopping",
   "amount": -120.50,
   "balance": 879.50,
   "date": "2023-05-15T14:30:00Z",
-  "type": "EXPENSE",
+  "type": "spending",
   "userId": "60d21b4667d0d8992e610c85"
 }
 ```
@@ -406,7 +409,9 @@ Creates a new financial transaction.
 ```json
 {
   "statusCode": 400,
-  "message": "Description and amount are required"
+  "message": "Description and amount are required",
+  "errorCode": "INVALID_TRANSACTION_DATA",
+  "timestamp": "2023-03-23T01:23:45.678Z"
 }
 ```
 

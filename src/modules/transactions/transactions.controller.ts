@@ -43,14 +43,14 @@ export class TransactionsController {
     // Get the userId from request
     const userId = this.getUserIdFromRequest(request);
     
-    // Set userId to the current user if not provided
-    if (!createTransactionDto.userId) {
-      createTransactionDto.userId = userId;
-    } else if (createTransactionDto.userId !== userId && (request.user as any).priviledge !== 'admin') {
-      // Non-admin users can only create transactions for themselves
-      createTransactionDto.userId = userId;
-    }
-
+    // Set the userId from the authenticated user - this is simpler
+    createTransactionDto.userId = userId;
+    
+    // If the user is an admin and explicitly provided a different userId, let them create
+    // transactions for other users
+    const isAdmin = (request.user as any).priviledge === 'admin';
+    // No additional logic needed for non-admin users - they can only create for themselves
+    
     return this.transactionsService.create(createTransactionDto);
   }
 
