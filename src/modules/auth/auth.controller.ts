@@ -45,6 +45,17 @@ export class AuthController {
     return result;
   }
 
+  @Post('logout')
+  @HttpCode(HttpStatus.OK)
+  async logout(@Request() req) {
+    // JWT is stateless, so logout happens on the client side by removing the token
+    this.logger.log('Logout endpoint called');
+    return { 
+      message: 'Logout successful',
+      success: true
+    };
+  }
+
   @UseGuards(JwtAuthGuard)
   @Get('profile')
   getProfile(@Request() req, @UserRole() userRole: string | null) {

@@ -124,6 +124,28 @@ Authenticates a user and returns a JWT token.
 }
 ```
 
+### Logout
+
+Logs out the current user by invalidating the client-side token.
+
+**URL**: `/auth/logout`
+
+**Method**: `POST`
+
+**Auth required**: No
+
+**Success Response**:
+
+- **Code**: 200 OK
+- **Content**:
+
+```json
+{
+  "message": "Logout successful",
+  "success": true
+}
+```
+
 ### Get Current User Profile
 
 Retrieves the profile of the currently authenticated user.
