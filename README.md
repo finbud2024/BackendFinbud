@@ -271,21 +271,44 @@ Updates a user's profile information.
 
 **URL**: `/users/:id`
 
-**Method**: `PATCH`
+**Method**: `PUT`
 
 **Auth required**: Yes (JWT token, must be user themselves or admin)
 
 **URL Parameters**: `id=[string]` the ID of the user to update
 
-**Request Body**:
+**Request Body Examples**:
 
+Example 1: Update identity information
 ```json
 {
-  "firstName": "Jonathan",
-  "lastName": "Doe",
-  "displayName": "Jon Doe"
+  "identityData": {
+    "firstName": "Jonathan",
+    "lastName": "Doe",
+    "displayName": "Jon Doe"
+  }
 }
 ```
+
+Example 2: Update account information
+```json
+{
+  "accountData": {
+    "password": "newSecurePassword123"
+  }
+}
+```
+
+Example 3: Update user settings
+```json
+{
+  "settings": {
+    "darkMode": true
+  }
+}
+```
+
+> Note: You can combine multiple sections in a single request.
 
 **Success Response**:
 
@@ -294,12 +317,19 @@ Updates a user's profile information.
 
 ```json
 {
-  "id": "60d21b4667d0d8992e610c85",
-  "username": "johndoe",
-  "firstName": "Jonathan",
-  "lastName": "Doe",
-  "displayName": "Jon Doe",
-  "priviledge": "user"
+  "message": "User updated successfully",
+  "updatedUser": {
+    "_id": "60d21b4667d0d8992e610c85",
+    "accountData": {
+      "username": "user@example.com",
+      "priviledge": "user"
+    },
+    "identityData": {
+      "firstName": "Jonathan",
+      "lastName": "Doe",
+      "displayName": "Jon Doe"
+    }
+  }
 }
 ```
 
