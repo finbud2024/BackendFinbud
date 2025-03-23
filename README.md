@@ -359,9 +359,15 @@ Deletes a user account.
 
 ## Transactions
 
-### Create a Transaction
+This section documents the transaction-related endpoints. The API provides separate endpoints for regular users and administrators.
 
-Creates a new financial transaction.
+### Frontend-Friendly Endpoints (Regular Users)
+
+These endpoints are intended for use in user-facing applications:
+
+#### Create a Transaction
+
+Creates a new financial transaction for the current user.
 
 **URL**: `/transactions`
 
@@ -415,26 +421,7 @@ Creates a new financial transaction.
 }
 ```
 
-### Get All Transactions (Admin Only)
-
-Retrieves a list of all transactions in the system.
-
-**URL**: `/transactions`
-
-**Method**: `GET`
-
-**Auth required**: Yes (JWT token with admin privileges)
-
-**Success Response**:
-
-- **Code**: 200 OK
-- **Content**: Array of transaction objects
-
-**Error Response**:
-
-- **Code**: 401 UNAUTHORIZED
-
-### Get Current User's Transactions
+#### Get Current User's Transactions
 
 Retrieves all transactions for the currently authenticated user.
 
@@ -453,28 +440,7 @@ Retrieves all transactions for the currently authenticated user.
 
 - **Code**: 401 UNAUTHORIZED
 
-### Get Specific User's Transactions
-
-Retrieves all transactions for a specific user.
-
-**URL**: `/transactions/u/:userId`
-
-**Method**: `GET`
-
-**Auth required**: Yes (JWT token, must be user themselves or admin)
-
-**URL Parameters**: `userId=[string]` the ID of the user whose transactions to retrieve
-
-**Success Response**:
-
-- **Code**: 200 OK
-- **Content**: Array of transaction objects sorted by date (newest first)
-
-**Error Response**:
-
-- **Code**: 404 NOT FOUND or 403 FORBIDDEN
-
-### Get Transaction by ID
+#### Get Transaction by ID
 
 Retrieves a specific transaction by its ID.
 
@@ -482,7 +448,7 @@ Retrieves a specific transaction by its ID.
 
 **Method**: `GET`
 
-**Auth required**: Yes (JWT token, must be owner of transaction or admin)
+**Auth required**: Yes (JWT token, must be owner of transaction)
 
 **URL Parameters**: `id=[string]` the ID of the transaction to retrieve
 
@@ -493,9 +459,9 @@ Retrieves a specific transaction by its ID.
 
 **Error Response**:
 
-- **Code**: 404 NOT FOUND
+- **Code**: 404 NOT FOUND or 403 FORBIDDEN if not owned by user
 
-### Update Transaction
+#### Update Transaction
 
 Updates a specific transaction.
 
@@ -503,7 +469,7 @@ Updates a specific transaction.
 
 **Method**: `PATCH`
 
-**Auth required**: Yes (JWT token, must be owner of transaction or admin)
+**Auth required**: Yes (JWT token, must be owner of transaction)
 
 **URL Parameters**: `id=[string]` the ID of the transaction to update
 
@@ -523,9 +489,9 @@ Updates a specific transaction.
 
 **Error Response**:
 
-- **Code**: 404 NOT FOUND or 400 BAD REQUEST
+- **Code**: 404 NOT FOUND, 400 BAD REQUEST, or 403 FORBIDDEN if not owned by user
 
-### Delete Transaction
+#### Delete Transaction
 
 Deletes a specific transaction.
 
@@ -533,7 +499,7 @@ Deletes a specific transaction.
 
 **Method**: `DELETE`
 
-**Auth required**: Yes (JWT token, must be owner of transaction or admin)
+**Auth required**: Yes (JWT token, must be owner of transaction)
 
 **URL Parameters**: `id=[string]` the ID of the transaction to delete
 
@@ -543,9 +509,9 @@ Deletes a specific transaction.
 
 **Error Response**:
 
-- **Code**: 404 NOT FOUND
+- **Code**: 404 NOT FOUND or 403 FORBIDDEN if not owned by user
 
-### Delete All User's Transactions
+#### Delete All User's Transactions
 
 Deletes all transactions for the currently authenticated user.
 
@@ -570,7 +536,51 @@ Deletes all transactions for the currently authenticated user.
 
 - **Code**: 401 UNAUTHORIZED
 
-### Delete All Transactions for a Specific User (Admin Only)
+### Admin-Only Endpoints
+
+These endpoints are intended for use in administrator interfaces only:
+
+#### Get All Transactions (Admin Only)
+
+Retrieves a list of all transactions in the system.
+
+**URL**: `/transactions`
+
+**Method**: `GET`
+
+**Auth required**: Yes (JWT token with admin privileges)
+
+**Success Response**:
+
+- **Code**: 200 OK
+- **Content**: Array of transaction objects
+
+**Error Response**:
+
+- **Code**: 401 UNAUTHORIZED or 403 FORBIDDEN
+
+#### Get Specific User's Transactions (Admin Only)
+
+Retrieves all transactions for a specific user.
+
+**URL**: `/transactions/u/:userId`
+
+**Method**: `GET`
+
+**Auth required**: Yes (JWT token with admin privileges)
+
+**URL Parameters**: `userId=[string]` the ID of the user whose transactions to retrieve
+
+**Success Response**:
+
+- **Code**: 200 OK
+- **Content**: Array of transaction objects sorted by date (newest first)
+
+**Error Response**:
+
+- **Code**: 404 NOT FOUND or 403 FORBIDDEN
+
+#### Delete All Transactions for a Specific User (Admin Only)
 
 Deletes all transactions for a specific user.
 
@@ -595,9 +605,9 @@ Deletes all transactions for a specific user.
 
 **Error Response**:
 
-- **Code**: 401 UNAUTHORIZED or 404 NOT FOUND
+- **Code**: 401 UNAUTHORIZED, 403 FORBIDDEN, or 404 NOT FOUND
 
-### Delete All Transactions (Admin Only)
+#### Delete All Transactions (Admin Only)
 
 Deletes all transactions in the system.
 
@@ -613,7 +623,7 @@ Deletes all transactions in the system.
 
 **Error Response**:
 
-- **Code**: 401 UNAUTHORIZED
+- **Code**: 401 UNAUTHORIZED or 403 FORBIDDEN
 
 ## Error Handling
 
