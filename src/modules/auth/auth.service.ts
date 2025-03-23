@@ -60,9 +60,9 @@ export class AuthService {
   }
 
   /**
-   * Registers a new user
+   * Registers a new user and returns a JWT token
    * @param registerDto User registration data
-   * @returns Created user data without sensitive information
+   * @returns Created user data and access token
    */
   async register(registerDto: RegisterDto) {
     try {
@@ -90,12 +90,24 @@ export class AuthService {
       
       this.logger.log(`User registered successfully: ${newUser._id}`);
       
-      // Return user without sensitive information
+      // Generate JWT token
+      const payload: JwtPayload = { 
+        username: newUser.accountData.username, 
+        sub: String(newUser._id)
+      };
+      
+      const token = this.jwtService.sign(payload);
+      
+      this.logger.log(`JWT token generated successfully for newly registered user: ${newUser._id}`);
+      
+      // Return user info and token
       return {
         id: newUser._id,
-        username: newUser.accountData.username, // This is the email
+        username: newUser.accountData.username,
         firstName: newUser.identityData?.firstName,
         lastName: newUser.identityData?.lastName,
+        access_token: token,
+        priviledge: newUser.accountData.priviledge
       };
       
     } catch (error) {

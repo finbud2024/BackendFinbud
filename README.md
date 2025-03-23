@@ -53,7 +53,9 @@ Creates a new user account.
   "id": "60d21b4667d0d8992e610c85",
   "username": "user@example.com",
   "firstName": "John",
-  "lastName": "Doe"
+  "lastName": "Doe",
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "priviledge": "user"
 }
 ```
 
