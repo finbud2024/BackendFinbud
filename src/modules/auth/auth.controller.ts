@@ -8,6 +8,8 @@ import {
   Request, 
   UseGuards,
   Logger,
+  Headers,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LocalAuthGuard } from '../../common/guards/local-auth.guard';
@@ -45,15 +47,21 @@ export class AuthController {
     return result;
   }
 
+  @UseGuards(JwtAuthGuard)
   @Post('logout')
   @HttpCode(HttpStatus.OK)
-  async logout(@Request() req) {
-    // JWT is stateless, so logout happens on the client side by removing the token
+  async logout(@Request() req, @Headers('authorization') authHeader: string) {
     this.logger.log('Logout endpoint called');
-    return { 
-      message: 'Logout successful',
-      success: true
-    };
+    
+    // Extract token from Authorization header
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      throw new UnauthorizedException('Invalid authorization header');
+    }
+    
+    const token = authHeader.split(' ')[1];
+    const userId = req.user.userId;
+    
+    return this.authService.logout(token, userId);
   }
 
   @UseGuards(JwtAuthGuard)

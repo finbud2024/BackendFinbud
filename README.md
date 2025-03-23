@@ -10,6 +10,7 @@ This document provides comprehensive documentation for the FinBud API, covering 
 - [Goals](#goals)
 - [Error Handling](#error-handling)
 - [Getting Started](#getting-started)
+- [Stocks](#stocks)
 
 ## Base URL
 
@@ -1081,4 +1082,315 @@ npm run build
 
 # Start production server
 npm run start:prod
-``` 
+```
+
+## Stocks
+
+The Stocks module allows you to retrieve stock market data, manage stock price entries, and interact with market information.
+
+### Testing with Postman
+
+#### Prerequisites
+1. Ensure the FinBud backend server is running (`npm run start:dev`)
+2. Make sure you have a valid authentication token (by logging in)
+3. Import the Postman collection from the link provided below or create requests manually
+
+#### Authentication Setup
+For endpoints requiring authentication:
+1. In your Postman request, go to the "Authorization" tab
+2. Select "Bearer Token" from the Type dropdown
+3. Paste your JWT token in the "Token" field
+
+### Endpoints
+
+#### Get Market Data
+
+Retrieves stock market data from TradingView.
+
+**URL**: `/stocks/market`
+
+**Method**: `GET`
+
+**Auth required**: No
+
+**Query Parameters**:
+- `page` (optional): Page number for pagination (default: 1)
+- `pageSize` (optional): Number of results per page (default: 50)
+- `search` (optional): Search for specific stocks
+- `sortBy` (optional): Field to sort by (default: 'market_cap_basic')
+- `sortOrder` (optional): Sort direction - 'asc' or 'desc' (default: 'desc')
+- `markets` (optional): Market to search in (default: 'america')
+
+**Example Request**:
+```
+GET /stocks/market?page=1&pageSize=10&sortBy=change&sortOrder=desc
+```
+
+**Success Response**:
+- **Code**: 200 OK
+- **Content**:
+```json
+{
+  "data": [
+    {
+      "symbol": "AAPL",
+      "name": "Apple Inc",
+      "price": 172.4,
+      "change": 3.51,
+      "changePercent": 2.08,
+      "volume": 65234512,
+      "marketCap": 2718495744000,
+      "exchange": "NASDAQ",
+      "sector": "Technology",
+      "industry": "Consumer Electronics"
+    },
+    // More stock entries...
+  ],
+  "totalCount": 8543,
+  "page": 1,
+  "pageSize": 10
+}
+```
+
+#### Get All Stocks
+
+Retrieves a list of all stock entries stored in the database (limited to 100 most recent entries).
+
+**URL**: `/stocks`
+
+**Method**: `GET`
+
+**Auth required**: No
+
+**Success Response**:
+- **Code**: 200 OK
+- **Content**:
+```json
+[
+  {
+    "_id": "60d21b4667d0d8992e610c85",
+    "symbol": "AAPL",
+    "open": 170.33,
+    "high": 173.12,
+    "low": 169.95,
+    "close": 172.4,
+    "volume": 65234512,
+    "change": 2.07,
+    "date": "2023-03-23T00:00:00.000Z"
+  },
+  // More stock entries...
+]
+```
+
+#### Get Latest Stock Price
+
+Retrieves the latest price data for a specific stock symbol.
+
+**URL**: `/stocks/latest/:symbol`
+
+**Method**: `GET`
+
+**Auth required**: No
+
+**URL Parameters**:
+- `symbol`: Stock symbol (e.g., AAPL, MSFT, GOOGL)
+
+**Example**:
+```
+GET /stocks/latest/AAPL
+```
+
+**Success Response**:
+- **Code**: 200 OK
+- **Content**:
+```json
+{
+  "_id": "60d21b4667d0d8992e610c85",
+  "symbol": "AAPL",
+  "open": 170.33,
+  "high": 173.12,
+  "low": 169.95,
+  "close": 172.4,
+  "volume": 65234512,
+  "change": 2.07,
+  "date": "2023-03-23T00:00:00.000Z"
+}
+```
+
+**Error Response**:
+- **Code**: 404 NOT FOUND
+- **Content**:
+```json
+{
+  "statusCode": 404,
+  "message": "No stock data found for symbol: AAPL",
+  "error": "Not Found"
+}
+```
+
+#### Get Historical Stock Data
+
+Retrieves historical stock data for a specific symbol within a date range.
+
+**URL**: `/stocks/historical/:symbol`
+
+**Method**: `GET`
+
+**Auth required**: No
+
+**URL Parameters**:
+- `symbol`: Stock symbol (e.g., AAPL, MSFT, GOOGL)
+
+**Query Parameters**:
+- `startDate`: Start date in ISO format (YYYY-MM-DD)
+- `endDate`: End date in ISO format (YYYY-MM-DD)
+
+**Example**:
+```
+GET /stocks/historical/AAPL?startDate=2023-01-01&endDate=2023-01-31
+```
+
+**Success Response**:
+- **Code**: 200 OK
+- **Content**:
+```json
+[
+  {
+    "_id": "60d21b4667d0d8992e610c85",
+    "symbol": "AAPL",
+    "open": 130.28,
+    "high": 134.92,
+    "low": 129.89,
+    "close": 134.76,
+    "volume": 80123456,
+    "change": 4.48,
+    "date": "2023-01-03T00:00:00.000Z"
+  },
+  // More stock entries...
+]
+```
+
+#### Get Available Stock Symbols
+
+Retrieves a list of all available stock symbols in the database.
+
+**URL**: `/stocks/symbols`
+
+**Method**: `GET`
+
+**Auth required**: No
+
+**Success Response**:
+- **Code**: 200 OK
+- **Content**:
+```json
+["AAPL", "MSFT", "GOOGL", "AMZN", "META"]
+```
+
+#### Add Stock Data (Admin Only)
+
+Adds a new stock data entry.
+
+**URL**: `/stocks`
+
+**Method**: `POST`
+
+**Auth required**: Yes (JWT token with admin privileges)
+
+**Request Body**:
+```json
+{
+  "symbol": "AAPL",
+  "open": 170.33,
+  "high": 173.12,
+  "low": 169.95,
+  "close": 172.4,
+  "volume": 65234512,
+  "change": 2.07,
+  "date": "2023-03-23T00:00:00.000Z"
+}
+```
+
+**Success Response**:
+- **Code**: 201 CREATED
+- **Content**: The created stock entry
+
+#### Batch Update Stock Data (Admin Only)
+
+Updates multiple stock data entries for a specific symbol.
+
+**URL**: `/stocks/batch`
+
+**Method**: `POST`
+
+**Auth required**: Yes (JWT token with admin privileges)
+
+**Request Body**:
+```json
+{
+  "symbol": "AAPL",
+  "data": [
+    {
+      "open": 170.33,
+      "high": 173.12,
+      "low": 169.95,
+      "close": 172.4,
+      "volume": 65234512,
+      "date": "2023-03-23T00:00:00.000Z"
+    },
+    {
+      "open": 172.41,
+      "high": 174.30,
+      "low": 171.09,
+      "close": 173.75,
+      "volume": 55123456,
+      "date": "2023-03-24T00:00:00.000Z"
+    }
+  ]
+}
+```
+
+**Success Response**:
+- **Code**: 200 OK
+- **Content**:
+```json
+{
+  "message": "Successfully processed 2 entries for symbol AAPL",
+  "saved": 2,
+  "skipped": 0
+}
+```
+
+### Testing Guide
+
+1. **Testing Market Data**
+   - Create a GET request to `/stocks/market?pageSize=10`
+   - This should return current market data from TradingView
+
+2. **Testing Historical Data**
+   - First, add some stock data using the admin-only endpoints
+   - Then create a GET request to `/stocks/historical/AAPL?startDate=2023-01-01&endDate=2023-12-31`
+   - This should return the historical price data for Apple stock
+
+3. **Testing Batch Update (Admin Only)**
+   - Create a POST request to `/stocks/batch`
+   - Include a JSON body with the sample format shown above
+   - This will add multiple stock entries at once
+
+4. **Testing Latest Price**
+   - After adding data, create a GET request to `/stocks/latest/AAPL`
+   - This should return the most recent price data for Apple stock
+
+### Common Issues
+
+1. **Authentication Errors**
+   - Make sure your JWT token is valid and correctly formatted in the Authorization header
+   - Admin-only endpoints will reject requests from non-admin users
+
+2. **404 Not Found**
+   - When querying stock data that doesn't exist in the database
+   - Check that you've added data for the symbol you're querying
+
+3. **Date Format Issues**
+   - Make sure dates are in ISO format (YYYY-MM-DD)
+   - The API includes a custom date parser to handle various formats 

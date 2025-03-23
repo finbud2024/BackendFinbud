@@ -11,6 +11,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { TransactionsModule } from './modules/transactions/transactions.module';
 import { GoalsModule } from './modules/goals/goals.module';
+import { StocksModule } from './modules/stocks/stocks.module';
 
 // Config
 import { getMongoConfig } from './config/database/mongoose.config';
@@ -34,6 +35,7 @@ import { getMongoConfig } from './config/database/mongoose.config';
     AuthModule,
     TransactionsModule,
     GoalsModule,
+    StocksModule,
   ],
   controllers: [AppController],
   providers: [

@@ -6,6 +6,7 @@ import { JwtPayload } from '../../common/interfaces/auth.interface';
 import { UserDocument } from '../users/entities/user.entity';
 import { RegisterDto } from './dto/register.dto';
 import { CreateUserDto } from '../users/dto/create-user.dto';
+import { TokenService } from './services/token.service';
 
 @Injectable()
 export class AuthService {
@@ -14,6 +15,7 @@ export class AuthService {
   constructor(
     private usersService: UsersService,
     private jwtService: JwtService,
+    private tokenService: TokenService,
   ) {}
 
   /**
@@ -145,6 +147,34 @@ export class AuthService {
     } catch (error) {
       this.logger.error(`Error generating JWT token: ${error.message}`);
       throw error;
+    }
+  }
+
+  /**
+   * Logout a user by invalidating their JWT token
+   * @param token The JWT token to invalidate
+   * @param userId The user ID associated with the token
+   * @returns Success message
+   */
+  async logout(token: string, userId: string): Promise<{ message: string }> {
+    try {
+      this.logger.log(`Logging out user: ${userId}`);
+      
+      // Invalid token check
+      if (!token) {
+        this.logger.warn('Logout attempted without a token');
+        return { message: 'Logout successful' }; // Still return success
+      }
+      
+      // Add token to blacklist
+      await this.tokenService.invalidateToken(token, userId);
+      
+      this.logger.log(`User logged out successfully: ${userId}`);
+      return { message: 'Logout successful' };
+    } catch (error) {
+      this.logger.error(`Error during logout: ${error.message}`);
+      // Still return success to client even if blacklisting fails
+      return { message: 'Logout successful' };
     }
   }
 } 
