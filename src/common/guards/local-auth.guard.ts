@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import { UnauthorizedException } from '../exceptions/auth.exceptions';
+import { ExceptionFactory } from '../exceptions/app.exception';
 
 @Injectable()
 export class LocalAuthGuard extends AuthGuard('local') {
@@ -11,7 +11,7 @@ export class LocalAuthGuard extends AuthGuard('local') {
     if (err || !user) {
       const errorMessage = err?.message || info?.message || 'Invalid login attempt';
       this.logger.warn(`Login failed: ${errorMessage}`);
-      throw err || new UnauthorizedException('Invalid username or password');
+      throw err || ExceptionFactory.invalidCredentials();
     }
     
     return user;

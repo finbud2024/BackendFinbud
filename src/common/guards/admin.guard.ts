@@ -1,5 +1,5 @@
 import { Injectable, CanActivate, ExecutionContext, Logger } from '@nestjs/common';
-import { ForbiddenResourceException } from '../exceptions/auth.exceptions';
+import { ExceptionFactory } from '../exceptions/app.exception';
 
 @Injectable()
 export class AdminGuard implements CanActivate {
@@ -11,12 +11,12 @@ export class AdminGuard implements CanActivate {
     
     if (!user || !user.accountData || !user.accountData.priviledge) {
       this.logger.warn('Admin check failed: user or user privilege not defined');
-      throw new ForbiddenResourceException();
+      throw ExceptionFactory.forbidden();
     }
     
     if (user.accountData.priviledge !== 'admin') {
       this.logger.warn(`User with privilege ${user.accountData.priviledge} attempted to access admin-only resource`);
-      throw new ForbiddenResourceException('Admin resources');
+      throw ExceptionFactory.forbidden('Admin resources');
     }
     
     return true;

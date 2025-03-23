@@ -1,9 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
-import { InvalidCredentialsException } from '../../common/exceptions/user.exceptions';
+import { ExceptionFactory } from '../../common/exceptions/app.exception';
 import { JwtPayload } from '../../common/interfaces/auth.interface';
 import { UserDocument } from '../users/entities/user.entity';
+import { RegisterDto } from './dto/register.dto';
+import { CreateUserDto } from '../users/dto/create-user.dto';
 
 @Injectable()
 export class AuthService {
@@ -14,24 +16,30 @@ export class AuthService {
     private jwtService: JwtService,
   ) {}
 
+  /**
+   * Validates a user by their email and password
+   * @param username User's email address
+   * @param password User's password
+   * @returns User data without sensitive information
+   */
   async validateUser(username: string, password: string): Promise<any> {
     try {
-      this.logger.log(`Validating user credentials for username: ${username}`);
+      this.logger.log(`Validating user credentials for email: ${username}`);
       const user = await this.usersService.findByUsername(username);
       
       if (!user) {
-        this.logger.warn(`Authentication failed: User ${username} not found`);
-        throw new InvalidCredentialsException();
+        this.logger.warn(`Authentication failed: User with email ${username} not found`);
+        throw ExceptionFactory.invalidCredentials();
       }
       
       const isPasswordValid = await user.comparePassword(password);
       
       if (!isPasswordValid) {
-        this.logger.warn(`Authentication failed: Invalid password for user ${username}`);
-        throw new InvalidCredentialsException();
+        this.logger.warn(`Authentication failed: Invalid password for user with email ${username}`);
+        throw ExceptionFactory.invalidCredentials();
       }
       
-      this.logger.log(`User ${username} authenticated successfully`);
+      this.logger.log(`User with email ${username} authenticated successfully`);
       
       // We don't want to return the password in the response
       const { accountData, ...result } = user.toJSON();
@@ -42,12 +50,62 @@ export class AuthService {
         accountData: accountDataWithoutPassword,
       };
     } catch (error) {
-      if (error instanceof InvalidCredentialsException) {
+      if (error.message === 'Invalid username or password') {
         throw error;
       }
       
       this.logger.error(`Unexpected error during user validation: ${error.message}`);
-      throw new InvalidCredentialsException();
+      throw ExceptionFactory.invalidCredentials();
+    }
+  }
+
+  /**
+   * Registers a new user
+   * @param registerDto User registration data
+   * @returns Created user data without sensitive information
+   */
+  async register(registerDto: RegisterDto) {
+    try {
+      this.logger.log(`Registering new user with email: ${registerDto.username}`);
+      
+      // Convert RegisterDto to CreateUserDto
+      const createUserDto: CreateUserDto = {
+        accountData: {
+          username: registerDto.username.toLowerCase(), // Store email in lowercase
+          password: registerDto.password,
+          priviledge: 'user', // Default to regular user
+        },
+        identityData: {
+          firstName: registerDto.firstName,
+          lastName: registerDto.lastName,
+          displayName: registerDto.firstName && registerDto.lastName 
+            ? `${registerDto.firstName} ${registerDto.lastName}`
+            : registerDto.username.split('@')[0], // Use part of email as display name if no name provided
+        },
+        // Default banking account and settings will be created by the schema
+      };
+      
+      // Create user
+      const newUser = await this.usersService.create(createUserDto);
+      
+      this.logger.log(`User registered successfully: ${newUser._id}`);
+      
+      // Return user without sensitive information
+      return {
+        id: newUser._id,
+        username: newUser.accountData.username, // This is the email
+        firstName: newUser.identityData?.firstName,
+        lastName: newUser.identityData?.lastName,
+      };
+      
+    } catch (error) {
+      if (error.message && error.message.includes('username is already taken')) {
+        this.logger.warn(`Registration failed: Email ${registerDto.username} already exists`);
+        throw ExceptionFactory.usernameTaken(registerDto.username);
+      }
+      
+      this.logger.error(`Registration failed: ${error.message}`);
+      throw error;
     }
   }
 
@@ -68,7 +126,7 @@ export class AuthService {
         access_token: token,
         user: {
           userId: user._id,
-          username: user.accountData.username,
+          username: user.accountData.username, // This is the email
           priviledge: user.accountData.priviledge
         }
       };

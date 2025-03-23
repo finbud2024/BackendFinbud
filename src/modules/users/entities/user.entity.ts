@@ -5,7 +5,7 @@ import * as bcrypt from 'bcrypt';
 // Account Data Schema
 @Schema()
 class AccountData {
-  @Prop({ required: true, unique: true })
+  @Prop({ required: true, unique: true, description: 'User email address used as username' })
   username: string;
 
   @Prop()

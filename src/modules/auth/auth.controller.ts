@@ -14,6 +14,7 @@ import { LocalAuthGuard } from '../../common/guards/local-auth.guard';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { AdminGuard } from '../../common/guards/admin.guard';
 import { LoginDto } from './dto/login.dto';
+import { RegisterDto } from './dto/register.dto';
 import { UserRole } from '../../common/decorators/user-role.decorator';
 
 @Controller('auth')
@@ -24,14 +25,23 @@ export class AuthController {
     private readonly authService: AuthService,
   ) {}
 
+  @Post('register')
+  @HttpCode(HttpStatus.CREATED)
+  async register(@Body() registerDto: RegisterDto) {
+    this.logger.log(`Registration attempt for email: ${registerDto.username}`);
+    const result = await this.authService.register(registerDto);
+    this.logger.log(`Registration successful for email: ${registerDto.username}`);
+    return result;
+  }
+
   @UseGuards(LocalAuthGuard)
   @Post('login')
   @HttpCode(HttpStatus.OK)
   async login(@Request() req, @Body() loginDto: LoginDto) {
-    this.logger.log(`Login attempt for user: ${loginDto.username}`);
+    this.logger.log(`Login attempt for email: ${loginDto.username}`);
     // LocalAuthGuard will validate credentials and add user to request
     const result = await this.authService.login(req.user);
-    this.logger.log(`Login successful for user: ${loginDto.username}`);
+    this.logger.log(`Login successful for email: ${loginDto.username}`);
     return result;
   }
 

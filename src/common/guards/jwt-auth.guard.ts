@@ -1,11 +1,7 @@
 import { Injectable, ExecutionContext, Logger } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { Observable } from 'rxjs';
-import { 
-  UnauthorizedException, 
-  MissingTokenException, 
-  InvalidTokenException 
-} from '../exceptions/auth.exceptions';
+import { ExceptionFactory } from '../exceptions/app.exception';
 
 @Injectable()
 export class JwtAuthGuard extends AuthGuard('jwt') {
@@ -18,13 +14,13 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     // Check if the Authorization header is present
     if (!authHeader) {
       this.logger.warn(`Missing Authorization header: ${request.url}`);
-      throw new MissingTokenException();
+      throw ExceptionFactory.missingToken();
     }
     
     // Check if the Authorization header has the Bearer format
     if (!authHeader.startsWith('Bearer ')) {
       this.logger.warn(`Invalid Authorization header format: ${request.url}`);
-      throw new InvalidTokenException();
+      throw ExceptionFactory.invalidToken();
     }
     
     return super.canActivate(context);
@@ -35,16 +31,16 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     if (err || !user) {
       if (info?.name === 'TokenExpiredError') {
         this.logger.warn(`Token expired: ${info.message}`);
-        throw new InvalidTokenException();
+        throw ExceptionFactory.invalidToken();
       }
       
       if (info?.name === 'JsonWebTokenError') {
         this.logger.warn(`JWT error: ${info.message}`);
-        throw new InvalidTokenException();
+        throw ExceptionFactory.invalidToken();
       }
       
       this.logger.error(`Authentication failed: ${err?.message || 'Unknown error'}`);
-      throw err || new UnauthorizedException();
+      throw err || ExceptionFactory.unauthorized();
     }
     
     return user;

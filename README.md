@@ -2,6 +2,14 @@
 
 This document provides comprehensive documentation for the FinBud API, covering authentication, user management, and transaction operations.
 
+## Table of Contents
+- [Base URL](#base-url)
+- [Authentication](#authentication)
+- [Users](#users)
+- [Transactions](#transactions)
+- [Error Handling](#error-handling)
+- [Getting Started](#getting-started)
+
 ## Base URL
 
 All API requests should be prefixed with:
@@ -26,12 +34,14 @@ Creates a new user account.
 
 ```json
 {
-  "username": "johndoe",
+  "username": "user@example.com",
   "password": "securePassword123",
   "firstName": "John",
   "lastName": "Doe"
 }
 ```
+
+> Note: The `username` field must be a valid email address.
 
 **Success Response**:
 
@@ -41,7 +51,7 @@ Creates a new user account.
 ```json
 {
   "id": "60d21b4667d0d8992e610c85",
-  "username": "johndoe",
+  "username": "user@example.com",
   "firstName": "John",
   "lastName": "Doe"
 }
@@ -55,7 +65,9 @@ Creates a new user account.
 ```json
 {
   "statusCode": 400,
-  "message": "Username already exists"
+  "message": "Username already exists",
+  "errorCode": "USERNAME_TAKEN",
+  "timestamp": "2023-03-23T01:23:45.678Z"
 }
 ```
 
@@ -73,10 +85,12 @@ Authenticates a user and returns a JWT token.
 
 ```json
 {
-  "username": "johndoe",
+  "username": "user@example.com",
   "password": "securePassword123"
 }
 ```
+
+> Note: The `username` field must be a valid email address.
 
 **Success Response**:
 
@@ -85,9 +99,12 @@ Authenticates a user and returns a JWT token.
 
 ```json
 {
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "userId": "60d21b4667d0d8992e610c85",
-  "username": "johndoe"
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "user": {
+    "userId": "60d21b4667d0d8992e610c85",
+    "username": "user@example.com",
+    "priviledge": "user"
+  }
 }
 ```
 
@@ -99,11 +116,13 @@ Authenticates a user and returns a JWT token.
 ```json
 {
   "statusCode": 401,
-  "message": "Invalid credentials"
+  "message": "Invalid username or password",
+  "errorCode": "INVALID_CREDENTIALS",
+  "timestamp": "2023-03-23T01:23:45.678Z"
 }
 ```
 
-### Get Current User
+### Get Current User Profile
 
 Retrieves the profile of the currently authenticated user.
 
@@ -120,12 +139,13 @@ Retrieves the profile of the currently authenticated user.
 
 ```json
 {
-  "id": "60d21b4667d0d8992e610c85",
-  "username": "johndoe",
-  "firstName": "John",
-  "lastName": "Doe",
-  "displayName": "John Doe",
-  "priviledge": "user"
+  "userId": "60d21b4667d0d8992e610c85",
+  "username": "user@example.com",
+  "accountData": {
+    "username": "user@example.com",
+    "priviledge": "user"
+  },
+  "role": "user"
 }
 ```
 
@@ -137,7 +157,9 @@ Retrieves the profile of the currently authenticated user.
 ```json
 {
   "statusCode": 401,
-  "message": "Unauthorized"
+  "message": "Unauthorized",
+  "errorCode": "UNAUTHORIZED_ACCESS",
+  "timestamp": "2023-03-23T01:23:45.678Z"
 }
 ```
 
@@ -161,33 +183,43 @@ Retrieves a list of all users in the system.
 ```json
 [
   {
-    "id": "60d21b4667d0d8992e610c85",
-    "username": "johndoe",
-    "firstName": "John",
-    "lastName": "Doe",
-    "displayName": "John Doe",
-    "priviledge": "user"
+    "_id": "60d21b4667d0d8992e610c85",
+    "accountData": {
+      "username": "user1@example.com",
+      "priviledge": "user"
+    },
+    "identityData": {
+      "firstName": "John",
+      "lastName": "Doe",
+      "displayName": "John Doe"
+    }
   },
   {
-    "id": "60d21b4667d0d8992e610c86",
-    "username": "janedoe",
-    "firstName": "Jane",
-    "lastName": "Doe",
-    "displayName": "Jane Doe",
-    "priviledge": "admin"
+    "_id": "60d21b4667d0d8992e610c86",
+    "accountData": {
+      "username": "admin@example.com",
+      "priviledge": "admin"
+    },
+    "identityData": {
+      "firstName": "Jane",
+      "lastName": "Doe",
+      "displayName": "Jane Doe"
+    }
   }
 ]
 ```
 
 **Error Response**:
 
-- **Code**: 401 UNAUTHORIZED
+- **Code**: 403 FORBIDDEN
 - **Content**:
 
 ```json
 {
-  "statusCode": 401,
-  "message": "Unauthorized"
+  "statusCode": 403,
+  "message": "Access forbidden",
+  "errorCode": "FORBIDDEN_RESOURCE",
+  "timestamp": "2023-03-23T01:23:45.678Z"
 }
 ```
 
@@ -546,66 +578,68 @@ Deletes all transactions in the system.
 
 - **Code**: 401 UNAUTHORIZED
 
-## Error Responses
+## Error Handling
 
-The API uses conventional HTTP response codes to indicate the success or failure of an API request:
+The API uses a standardized error response format:
 
-- `200 OK`: The request was successful
-- `201 Created`: A new resource was successfully created
-- `204 No Content`: The request was successful but there's no content to return
-- `400 Bad Request`: The request was malformed or invalid
-- `401 Unauthorized`: Authentication failed or user doesn't have permissions
-- `403 Forbidden`: The authenticated user doesn't have access to the requested resource
-- `404 Not Found`: The requested resource doesn't exist
-- `500 Internal Server Error`: Something went wrong on the server
-
-## Authentication
-
-Most endpoints require a valid JWT token for authentication. The token should be included in the Authorization header of your HTTP requests:
-
-```
-Authorization: Bearer your-token-here
+```json
+{
+  "statusCode": 400,
+  "message": "Error message describing what went wrong",
+  "errorCode": "ERROR_CODE_IDENTIFIER",
+  "details": {}, // Optional additional error details
+  "timestamp": "2023-03-23T01:23:45.678Z",
+  "path": "/api/resource/path"
+}
 ```
 
-You can obtain a token by using the login endpoint.
+### Common Error Codes
 
-## Testing the API
+| Error Code | Status Code | Description |
+|------------|-------------|-------------|
+| `UNAUTHORIZED_ACCESS` | 401 | The user is not authenticated |
+| `INVALID_CREDENTIALS` | 401 | Invalid username or password |
+| `FORBIDDEN_RESOURCE` | 403 | User doesn't have permission to access the resource |
+| `USER_NOT_FOUND` | 404 | The requested user doesn't exist |
+| `USERNAME_TAKEN` | 409 | The email address is already registered |
+| `TRANSACTION_NOT_FOUND` | 404 | The requested transaction doesn't exist |
+| `INVALID_TRANSACTION_DATA` | 400 | Transaction data validation failed |
 
-To test the API, you can use tools like Postman, curl, or any HTTP client that allows you to send requests with headers and a request body.
+## Getting Started
 
-### Example: Register a User
+### Prerequisites
+
+- Node.js (v16 or later)
+- MongoDB (v4 or later)
+
+### Environment Setup
+
+Create a `.env` file in the project root with the following variables:
+
+```
+# MongoDB Connection
+MONGODB_URI=mongodb://localhost:27017/finbud
+
+# JWT Settings
+JWT_SECRET=your-secret-key-here
+JWT_EXPIRATION=1d
+
+# Server Configuration
+PORT=3000
+```
+
+### Installation
 
 ```bash
-curl -X POST http://yourserver.com/api/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{
-    "username": "johndoe",
-    "password": "securePassword123",
-    "firstName": "John",
-    "lastName": "Doe"
-  }'
-```
+# Install dependencies
+npm install
 
-### Example: Login
+# Start development server
+npm run start:dev
 
-```bash
-curl -X POST http://yourserver.com/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{
-    "username": "johndoe",
-    "password": "securePassword123"
-  }'
-```
+# Build for production
+npm run build
 
-### Example: Create a Transaction (with JWT token)
-
-```bash
-curl -X POST http://yourserver.com/api/transactions \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer your-token-here" \
-  -d '{
-    "description": "Grocery shopping",
-    "amount": -120.50,
-    "date": "2023-05-15T14:30:00Z"
-  }'
+# Start production server
+npm run start:prod
 ``` 

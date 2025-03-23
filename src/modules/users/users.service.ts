@@ -3,12 +3,7 @@ import { UsersRepository } from './repositories/users.repository';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UserDocument } from './entities/user.entity';
-import {
-  UserNotFoundException,
-  UsernameTakenException,
-  MissingUserDataException,
-  UserUpdateFailedException,
-} from '../../common/exceptions/user.exceptions';
+import { ExceptionFactory } from '../../common/exceptions/app.exception';
 import { BaseService } from '../../common/base/base.service';
 
 @Injectable()
@@ -25,11 +20,11 @@ export class UsersService extends BaseService<UserDocument> {
   override async create(createUserDto: CreateUserDto): Promise<UserDocument> {
     // Check required fields
     if (!createUserDto.accountData.username) {
-      throw new MissingUserDataException('username');
+      throw ExceptionFactory.missingUserData('username');
     }
     
     if (!createUserDto.accountData.password) {
-      throw new MissingUserDataException('password');
+      throw ExceptionFactory.missingUserData('password');
     }
     
     // Check if username already exists
@@ -38,7 +33,7 @@ export class UsersService extends BaseService<UserDocument> {
     );
 
     if (existingUser) {
-      throw new UsernameTakenException(createUserDto.accountData.username);
+      throw ExceptionFactory.usernameTaken(createUserDto.accountData.username);
     }
 
     return super.create(createUserDto);
@@ -89,10 +84,10 @@ export class UsersService extends BaseService<UserDocument> {
       // Leverage the base service implementation with transformed update object
       return await super.update(id, updateObj);
     } catch (error) {
-      if (error instanceof UserNotFoundException) {
+      if (error.message && error.message.includes('not found')) {
         throw error;
       }
-      throw new UserUpdateFailedException(id, error.message);
+      throw ExceptionFactory.userUpdateFailed(id, error.message);
     }
   }
 

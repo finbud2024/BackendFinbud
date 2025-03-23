@@ -4,11 +4,7 @@ import { TransactionsRepository } from './repositories/transactions.repository';
 import { TransactionDocument, Transaction } from './entities/transaction.entity';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { UpdateTransactionDto } from './dto/update-transaction.dto';
-import {
-  TransactionCreateFailedException,
-  TransactionUpdateFailedException,
-  TransactionDeleteFailedException,
-} from '../../common/exceptions/transaction.exceptions';
+import { ExceptionFactory } from '../../common/exceptions/app.exception';
 import { Types } from 'mongoose';
 
 @Injectable()
@@ -120,7 +116,7 @@ export class TransactionsService extends BaseService<TransactionDocument> {
       return result;
     } catch (error) {
       this.logger.error(`Failed to delete transactions for user ${userId}`, error.stack);
-      throw new TransactionDeleteFailedException(userId, `Failed to delete transactions: ${error.message}`);
+      throw ExceptionFactory.transactionDeleteFailed(userId, `Failed to delete transactions: ${error.message}`);
     }
   }
 } 

@@ -11,12 +11,11 @@ import {
   Logger,
   UseGuards,
   Req,
-  UnauthorizedException,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { MissingUserDataException } from '../../common/exceptions/user.exceptions';
+import { ExceptionFactory } from '../../common/exceptions/app.exception';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { AdminGuard } from '../../common/guards/admin.guard';
 import { OwnerOrAdminGuard } from '../../common/guards/owner-or-admin.guard';
@@ -99,7 +98,7 @@ export class UsersController {
       !updateData.settings ||
       typeof updateData.settings.darkMode !== 'boolean'
     ) {
-      throw new MissingUserDataException('darkMode setting (boolean)');
+      throw ExceptionFactory.missingUserData('darkMode setting (boolean)');
     }
 
     const updateUserDto: UpdateUserDto = {
@@ -132,7 +131,7 @@ export class UsersController {
     const user = request.user as any;
     if (!user || !user.userId) {
       this.logger.error('User not found in request or missing userId');
-      throw new UnauthorizedException('User identity not found in request');
+      throw ExceptionFactory.unauthorized('User identity not found in request');
     }
     return user.userId;
   }

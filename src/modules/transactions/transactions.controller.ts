@@ -10,10 +10,7 @@ import {
   Req,
   HttpStatus,
   HttpCode,
-  BadRequestException,
-  NotFoundException,
   Logger,
-  UnauthorizedException,
 } from '@nestjs/common';
 import { TransactionsService } from './transactions.service';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
@@ -24,6 +21,7 @@ import { OwnerOrAdminGuard } from '../../common/guards/owner-or-admin.guard';
 import { UserRole } from '../../common/decorators/user-role.decorator';
 import { TransactionDocument } from './entities/transaction.entity';
 import { Request } from 'express';
+import { ExceptionFactory } from '../../common/exceptions/app.exception';
 
 @Controller('transactions')
 @UseGuards(JwtAuthGuard)
@@ -39,7 +37,7 @@ export class TransactionsController {
   ): Promise<TransactionDocument> {
     // Validate required fields
     if (!createTransactionDto.description || createTransactionDto.amount === undefined) {
-      throw new BadRequestException('Description and amount are required');
+      throw ExceptionFactory.invalidTransactionData('description and amount');
     }
 
     // Get the userId from request
@@ -100,7 +98,7 @@ export class TransactionsController {
     
     // Check if transaction exists
     if (!transaction) {
-      throw new NotFoundException(`Transaction with ID ${id} not found`);
+      throw ExceptionFactory.transactionNotFound(id);
     }
     
     return transaction;
@@ -118,7 +116,7 @@ export class TransactionsController {
     
     // Validate that at least one field to update is provided
     if (!updateTransactionDto.description && updateTransactionDto.amount === undefined) {
-      throw new BadRequestException('At least one field to update is required');
+      throw ExceptionFactory.invalidTransactionData('at least one field (description or amount)');
     }
     
     // Find the transaction to check existence
@@ -126,14 +124,14 @@ export class TransactionsController {
     
     // Check if transaction exists
     if (!transaction) {
-      throw new NotFoundException(`Transaction with ID ${id} not found`);
+      throw ExceptionFactory.transactionNotFound(id);
     }
     
     // Prevent changing userId for non-admin users
     if (updateTransactionDto.userId && 
         userRole !== 'admin' && 
         updateTransactionDto.userId !== this.getUserIdFromRequest(request)) {
-      throw new BadRequestException('Cannot change user ID');
+      throw ExceptionFactory.invalidTransactionData('userId cannot be changed by non-admin users');
     }
     
     // Update the transaction
@@ -157,7 +155,7 @@ export class TransactionsController {
     
     // Check if transaction exists
     if (!transaction) {
-      throw new NotFoundException(`Transaction with ID ${id} not found`);
+      throw ExceptionFactory.transactionNotFound(id);
     }
     
     // Remove the transaction
@@ -199,7 +197,7 @@ export class TransactionsController {
     const user = request.user as any;
     if (!user || !user.userId) {
       this.logger.error('User not found in request or missing userId');
-      throw new UnauthorizedException('User identity not found in request');
+      throw ExceptionFactory.unauthorized('User identity not found in request');
     }
     return user.userId;
   }

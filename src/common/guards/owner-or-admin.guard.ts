@@ -1,5 +1,5 @@
 import { Injectable, CanActivate, ExecutionContext, Logger } from '@nestjs/common';
-import { ForbiddenResourceException } from '../exceptions/auth.exceptions';
+import { ExceptionFactory } from '../exceptions/app.exception';
 
 @Injectable()
 export class OwnerOrAdminGuard implements CanActivate {
@@ -12,7 +12,7 @@ export class OwnerOrAdminGuard implements CanActivate {
     
     if (!user || !user.accountData || !user.accountData.priviledge) {
       this.logger.warn('Owner/Admin check failed: user or user privilege not defined');
-      throw new ForbiddenResourceException();
+      throw ExceptionFactory.forbidden();
     }
     
     // If user is admin, allow access
@@ -24,7 +24,7 @@ export class OwnerOrAdminGuard implements CanActivate {
     // If no userId param exists, deny access
     if (!params.userId) {
       this.logger.warn('Owner/Admin check failed: no userId parameter in request');
-      throw new ForbiddenResourceException('User-specific resource');
+      throw ExceptionFactory.forbidden('User-specific resource');
     }
     
     // Allow access if user is accessing their own data
@@ -38,6 +38,6 @@ export class OwnerOrAdminGuard implements CanActivate {
       `User ${user.userId} with privilege ${user.accountData.priviledge} ` +
       `attempted to access resource belonging to user ${params.userId}`
     );
-    throw new ForbiddenResourceException('User-specific resource');
+    throw ExceptionFactory.forbidden('User-specific resource');
   }
 } 

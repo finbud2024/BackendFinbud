@@ -13,7 +13,7 @@ import { Type } from 'class-transformer';
 
 class AccountDataDto {
   @IsNotEmpty()
-  @IsString()
+  @IsEmail({}, { message: 'Please provide a valid email address' })
   username: string;
 
   @IsNotEmpty()
