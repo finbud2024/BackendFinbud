@@ -1,10 +1,9 @@
 import { Body, Controller, Get, Post, Query, UseGuards, HttpStatus, HttpCode } from '@nestjs/common';
 import { CryptoService } from './crypto.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { QueryCryptoDto } from './dto/query-crypto.dto';
+import { CreateCryptoDto } from './dto/create-crypto.dto';
 import { Crypto } from './entities/crypto.entity';
 import { UpdateCryptoDbDto } from './dto/update-crypto-db.dto';
-import { CreateCryptoDto } from './dto/create-crypto.dto';
 
 @Controller('crypto')
 @UseGuards(JwtAuthGuard)
@@ -15,21 +14,8 @@ export class CryptoController {
    * Query cryptocurrency data by symbol(s) and date range
    */
   @Get('query')
-  async queryCryptoData(@Query() query: any) {
-    const queryDto = new QueryCryptoDto();
-    
-    // Handle multiple symbols if provided as comma-separated string
-    if (query.symbols && typeof query.symbols === 'string') {
-      queryDto.symbols = query.symbols.split(',').map(s => s.trim());
-    } else {
-      queryDto.symbol = query.symbol;
-    }
-    
-    // Copy date parameters
-    queryDto.startDate = query.startDate ? new Date(query.startDate) : undefined;
-    queryDto.endDate = query.endDate ? new Date(query.endDate) : undefined;
-    
-    return this.cryptoService.queryData(queryDto);
+  async queryCryptoData(@Query() queryParams: any) {
+    return this.cryptoService.processQueryRequest(queryParams);
   }
 
   /**
@@ -72,13 +58,6 @@ export class CryptoController {
    */
   @Get('latest')
   async getLatestCrypto(@Query('symbol') symbol?: string, @Query('symbols') symbolsParam?: string) {
-    // Handle multiple symbols if provided as comma-separated string
-    if (symbolsParam) {
-      const symbols = symbolsParam.split(',').map(s => s.trim());
-      return this.cryptoService.getFormattedLatestEntry(symbols);
-    }
-    
-    // Handle single symbol case
-    return this.cryptoService.getFormattedLatestEntry(symbol);
+    return this.cryptoService.processLatestRequest(symbol, symbolsParam);
   }
 } 

@@ -22,23 +22,22 @@ export class CryptoService extends BaseService<CryptoDocument> {
   async findBySymbolAndDateRange(queryDto: QueryCryptoDto): Promise<Crypto[]> {
     const { symbol, symbols, startDate, endDate } = queryDto;
     
-    // Set default date range if not provided
-    const start = startDate || moment().subtract(30, 'days').toDate();
-    const end = endDate || new Date();
+    // Use date range method with provided dates or defaults
+    const dateRange = this.getDateRange(startDate, endDate);
     
     // Handle single symbol case
     if (symbol) {
-      this.logger.debug(`Searching for ${symbol} from ${start.toISOString()} to ${end.toISOString()}`);
-      return this.cryptoRepository.findBySymbolAndDateRange(symbol, start, end);
+      this.logger.debug(`Searching for ${symbol} from ${dateRange.startDate.toISOString()} to ${dateRange.endDate.toISOString()}`);
+      return this.cryptoRepository.findBySymbolAndDateRange(symbol, dateRange.startDate, dateRange.endDate);
     }
     
     // Handle multiple symbols case
     if (symbols && symbols.length > 0) {
-      this.logger.debug(`Searching for multiple symbols: [${symbols.join(', ')}] from ${start.toISOString()} to ${end.toISOString()}`);
+      this.logger.debug(`Searching for multiple symbols: [${symbols.join(', ')}] from ${dateRange.startDate.toISOString()} to ${dateRange.endDate.toISOString()}`);
       
       // Use Promise.all to fetch data for all symbols in parallel
       const results = await Promise.all(
-        symbols.map(sym => this.cryptoRepository.findBySymbolAndDateRange(sym, start, end))
+        symbols.map(sym => this.cryptoRepository.findBySymbolAndDateRange(sym, dateRange.startDate, dateRange.endDate))
       );
       
       // Flatten the results array
@@ -353,5 +352,67 @@ export class CryptoService extends BaseService<CryptoDocument> {
       count: result.savedEntries.length,
       skipped: result.skippedCount
     };
+  }
+
+  /**
+   * Parse raw query parameters and execute a cryptocurrency data query
+   * This handles parsing comma-separated symbols and date strings
+   * @param queryParams Raw query parameters from controller
+   * @returns Formatted response with data array, count, and optional message
+   */
+  async processQueryRequest(queryParams: any): Promise<{ data: Crypto[]; count: number; message?: string }> {
+    // Process query parameters using standardized method
+    const parsedParams = this.processQueryParams(queryParams, {
+      stringParams: ['symbol'],
+      commaSeparatedParams: ['symbols'],
+      dateRanges: [{
+        startParam: 'startDate',
+        endParam: 'endDate',
+        resultKey: 'dateRange',
+        defaultDaysBack: 30
+      }]
+    });
+    
+    // Prepare DTO using processed parameters
+    const queryDto = new QueryCryptoDto();
+    
+    if (parsedParams.symbols && parsedParams.symbols.length > 0) {
+      queryDto.symbols = parsedParams.symbols;
+    } else {
+      queryDto.symbol = parsedParams.symbol;
+    }
+    
+    if (parsedParams.dateRange) {
+      queryDto.startDate = parsedParams.dateRange.startDate;
+      queryDto.endDate = parsedParams.dateRange.endDate;
+    }
+    
+    // Use existing method to process the query
+    return this.queryData(queryDto);
+  }
+
+  /**
+   * Process a request for latest cryptocurrency data
+   * This handles both single symbol and comma-separated multiple symbols
+   * @param symbol Optional single symbol query parameter
+   * @param symbolsParam Optional comma-separated symbols parameter
+   * @returns Formatted response with data and optional message
+   */
+  async processLatestRequest(symbol?: string, symbolsParam?: string): Promise<{ data: Crypto | Crypto[] | null; message?: string }> {
+    // Process query parameters using standardized method
+    const parsedParams = this.processQueryParams(
+      { symbol, symbols: symbolsParam }, 
+      {
+        stringParams: ['symbol'],
+        commaSeparatedParams: ['symbols']
+      }
+    );
+    
+    if (parsedParams.symbols && parsedParams.symbols.length > 0) {
+      return this.getFormattedLatestEntry(parsedParams.symbols);
+    }
+    
+    // Handle single symbol case
+    return this.getFormattedLatestEntry(parsedParams.symbol);
   }
 } 

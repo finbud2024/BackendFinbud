@@ -216,4 +216,198 @@ export class BaseService<T extends Document> {
     this.logger.debug(`Running aggregation on ${this.entityName}s`);
     return this.repository.aggregate(pipeline);
   }
+
+  /**
+   * Utility methods to parse common query parameters
+   */
+
+  /**
+   * Parse a comma-separated string parameter into an array of strings
+   * @param paramValue The parameter value to parse
+   * @returns Array of trimmed strings, or undefined if input is invalid
+   */
+  protected parseCommaSeparatedParam(paramValue: any): string[] | undefined {
+    if (!paramValue) return undefined;
+    
+    if (typeof paramValue === 'string') {
+      return paramValue.split(',').map(value => value.trim());
+    }
+    
+    if (Array.isArray(paramValue)) {
+      return paramValue.map(value => String(value).trim());
+    }
+    
+    return undefined;
+  }
+
+  /**
+   * Parse a date parameter from various formats
+   * @param dateValue The date value to parse (string, date object, etc.)
+   * @returns Date object or undefined if parsing fails
+   */
+  protected parseDateParam(dateValue: any): Date | undefined {
+    if (!dateValue) return undefined;
+    
+    if (dateValue instanceof Date) {
+      return dateValue;
+    }
+    
+    try {
+      const parsedDate = new Date(dateValue);
+      // Check if the date is valid
+      if (isNaN(parsedDate.getTime())) {
+        return undefined;
+      }
+      return parsedDate;
+    } catch (error) {
+      this.logger.debug(`Failed to parse date parameter: ${dateValue}`);
+      return undefined;
+    }
+  }
+
+  /**
+   * Parse a numeric parameter
+   * @param numValue The numeric value to parse
+   * @param defaultValue Optional default value if parsing fails
+   * @returns Parsed number or default value
+   */
+  protected parseNumericParam(numValue: any, defaultValue?: number): number | undefined {
+    if (numValue === undefined || numValue === null) return defaultValue;
+    
+    if (typeof numValue === 'number') {
+      return numValue;
+    }
+    
+    try {
+      const parsed = Number(numValue);
+      return isNaN(parsed) ? defaultValue : parsed;
+    } catch (error) {
+      return defaultValue;
+    }
+  }
+
+  /**
+   * Get a date range with defaults for missing values
+   * @param startDateParam Start date parameter
+   * @param endDateParam End date parameter
+   * @param defaultDaysBack Number of days to go back for default start date
+   * @returns Object with start and end dates
+   */
+  protected getDateRange(
+    startDateParam?: any, 
+    endDateParam?: any,
+    defaultDaysBack: number = 30
+  ): { startDate: Date; endDate: Date } {
+    const endDate = this.parseDateParam(endDateParam) || new Date();
+    
+    let startDate: Date;
+    if (startDateParam) {
+      startDate = this.parseDateParam(startDateParam) || new Date();
+    } else {
+      // Default to N days ago if not provided
+      startDate = new Date();
+      startDate.setDate(startDate.getDate() - defaultDaysBack);
+    }
+    
+    return { startDate, endDate };
+  }
+
+  /**
+   * Process query parameters in a standardized way
+   * @param queryParams Raw query parameters from controller
+   * @param config Configuration for parameter processing
+   * @returns Processed parameters object
+   */
+  protected processQueryParams<T = any>(
+    queryParams: any,
+    config: {
+      stringParams?: string[]; // Simple string parameters
+      commaSeparatedParams?: string[]; // Parameters that should be parsed as arrays
+      dateParams?: string[]; // Date parameters
+      numericParams?: Array<{ name: string; defaultValue?: number }>; // Numeric parameters
+      dateRanges?: Array<{ 
+        startParam: string; 
+        endParam: string; 
+        resultKey: string;
+        defaultDaysBack?: number 
+      }>; // Date range pairs
+      booleanParams?: Array<{ name: string; defaultValue?: boolean }>; // Boolean parameters
+    }
+  ): T {
+    const result: any = {};
+    
+    // Process simple string parameters
+    if (config.stringParams) {
+      for (const param of config.stringParams) {
+        if (queryParams[param] !== undefined) {
+          result[param] = String(queryParams[param]);
+        }
+      }
+    }
+    
+    // Process comma-separated parameters
+    if (config.commaSeparatedParams) {
+      for (const param of config.commaSeparatedParams) {
+        const parsedValue = this.parseCommaSeparatedParam(queryParams[param]);
+        if (parsedValue) {
+          result[param] = parsedValue;
+        }
+      }
+    }
+    
+    // Process date parameters
+    if (config.dateParams) {
+      for (const param of config.dateParams) {
+        const parsedDate = this.parseDateParam(queryParams[param]);
+        if (parsedDate) {
+          result[param] = parsedDate;
+        }
+      }
+    }
+    
+    // Process numeric parameters
+    if (config.numericParams) {
+      for (const { name, defaultValue } of config.numericParams) {
+        result[name] = this.parseNumericParam(queryParams[name], defaultValue);
+      }
+    }
+    
+    // Process date ranges
+    if (config.dateRanges) {
+      for (const { startParam, endParam, resultKey, defaultDaysBack } of config.dateRanges) {
+        const range = this.getDateRange(
+          queryParams[startParam],
+          queryParams[endParam],
+          defaultDaysBack
+        );
+        result[resultKey] = range;
+      }
+    }
+    
+    // Process boolean parameters
+    if (config.booleanParams) {
+      for (const { name, defaultValue } of config.booleanParams) {
+        if (queryParams[name] !== undefined) {
+          if (typeof queryParams[name] === 'boolean') {
+            result[name] = queryParams[name];
+          } else if (typeof queryParams[name] === 'string') {
+            const value = queryParams[name].toLowerCase();
+            if (value === 'true' || value === '1' || value === 'yes') {
+              result[name] = true;
+            } else if (value === 'false' || value === '0' || value === 'no') {
+              result[name] = false;
+            } else {
+              result[name] = defaultValue;
+            }
+          } else {
+            result[name] = Boolean(queryParams[name]);
+          }
+        } else if (defaultValue !== undefined) {
+          result[name] = defaultValue;
+        }
+      }
+    }
+    
+    return result as T;
+  }
 } 
