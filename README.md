@@ -2230,12 +2230,22 @@ To test the portfolio functionality end-to-end, follow these steps:
 
 The events module provides endpoints for managing financial events and conferences.
 
+### Authentication
+
+All events endpoints require JWT authentication. Make sure to include a valid JWT token in the Authorization header for all requests.
+
 ### Endpoints
 
 #### GET /events
 Get a list of events with optional filtering and pagination.
 
-Query Parameters:
+**URL**: `/events`
+
+**Method**: `GET`
+
+**Auth required**: Yes (JWT token)
+
+**Query Parameters**:
 - `page`: Page number (default: 1)
 - `limit`: Number of items per page (default: 10)
 - `name`: Filter by event name
@@ -2244,7 +2254,9 @@ Query Parameters:
 - `sortBy`: Field to sort by (default: date)
 - `sortDirection`: Sort direction (asc/desc, default: asc)
 
-Response:
+**Success Response**:
+- **Code**: 200 OK
+- **Content**:
 ```json
 {
   "success": true,
@@ -2273,10 +2285,29 @@ Response:
 }
 ```
 
+**Error Response**:
+- **Code**: 401 UNAUTHORIZED
+- **Content**:
+```json
+{
+  "statusCode": 401,
+  "message": "Unauthorized",
+  "error": "Unauthorized"
+}
+```
+
 #### GET /events/map
 Get events with valid coordinates for map display.
 
-Response:
+**URL**: `/events/map`
+
+**Method**: `GET`
+
+**Auth required**: Yes (JWT token)
+
+**Success Response**:
+- **Code**: 200 OK
+- **Content**:
 ```json
 {
   "data": [
@@ -2299,10 +2330,18 @@ Response:
 #### GET /events/upcoming
 Get upcoming events.
 
-Query Parameters:
+**URL**: `/events/upcoming`
+
+**Method**: `GET`
+
+**Auth required**: Yes (JWT token)
+
+**Query Parameters**:
 - `limit`: Maximum number of events to return (default: 10)
 
-Response:
+**Success Response**:
+- **Code**: 200 OK
+- **Content**:
 ```json
 {
   "data": [
@@ -2326,11 +2365,19 @@ Response:
 #### GET /events/calendar
 Get events for a specific month and year.
 
-Query Parameters:
+**URL**: `/events/calendar`
+
+**Method**: `GET`
+
+**Auth required**: Yes (JWT token)
+
+**Query Parameters**:
 - `month`: Month number (1-12)
 - `year`: Year (e.g., 2023)
 
-Response:
+**Success Response**:
+- **Code**: 200 OK
+- **Content**:
 ```json
 {
   "data": [
@@ -2353,12 +2400,20 @@ Response:
 #### GET /events/nearby
 Get events near a specific location.
 
-Query Parameters:
+**URL**: `/events/nearby`
+
+**Method**: `GET`
+
+**Auth required**: Yes (JWT token)
+
+**Query Parameters**:
 - `lat`: Latitude
 - `lng`: Longitude
 - `radius`: Search radius in kilometers (default: 10)
 
-Response:
+**Success Response**:
+- **Code**: 200 OK
+- **Content**:
 ```json
 {
   "data": [
@@ -2382,7 +2437,18 @@ Response:
 #### GET /events/:id
 Get a single event by ID.
 
-Response:
+**URL**: `/events/:id`
+
+**Method**: `GET`
+
+**Auth required**: Yes (JWT token)
+
+**Path Parameters**:
+- `id`: Event ID
+
+**Success Response**:
+- **Code**: 200 OK
+- **Content**:
 ```json
 {
   "_id": "60d21b4967d0d8992e610c85",
@@ -2401,7 +2467,13 @@ Response:
 #### POST /events
 Create a new event.
 
-Request Body:
+**URL**: `/events`
+
+**Method**: `POST`
+
+**Auth required**: Yes (JWT token)
+
+**Request Body**:
 ```json
 {
   "name": "Fintech Summit 2023",
@@ -2416,7 +2488,9 @@ Request Body:
 }
 ```
 
-Response:
+**Success Response**:
+- **Code**: 201 CREATED
+- **Content**:
 ```json
 {
   "_id": "60d21b4967d0d8992e610c85",
@@ -2435,7 +2509,13 @@ Response:
 #### POST /events/batch
 Create multiple events at once.
 
-Request Body:
+**URL**: `/events/batch`
+
+**Method**: `POST`
+
+**Auth required**: Yes (JWT token)
+
+**Request Body**:
 ```json
 {
   "events": [
@@ -2454,7 +2534,9 @@ Request Body:
 }
 ```
 
-Response:
+**Success Response**:
+- **Code**: 201 CREATED
+- **Content**:
 ```json
 {
   "success": true,
@@ -2467,7 +2549,15 @@ Response:
 #### POST /events/scrape
 Manually trigger the event scraper.
 
-Response:
+**URL**: `/events/scrape`
+
+**Method**: `POST`
+
+**Auth required**: Yes (JWT token)
+
+**Success Response**:
+- **Code**: 200 OK
+- **Content**:
 ```json
 {
   "success": true,
@@ -2483,7 +2573,16 @@ Response:
 #### PUT /events/:id
 Update an existing event.
 
-Request Body:
+**URL**: `/events/:id`
+
+**Method**: `PUT`
+
+**Auth required**: Yes (JWT token)
+
+**Path Parameters**:
+- `id`: Event ID
+
+**Request Body**:
 ```json
 {
   "name": "Updated Fintech Summit 2023",
@@ -2491,7 +2590,9 @@ Request Body:
 }
 ```
 
-Response:
+**Success Response**:
+- **Code**: 200 OK
+- **Content**:
 ```json
 {
   "_id": "60d21b4967d0d8992e610c85",
@@ -2510,7 +2611,18 @@ Response:
 #### DELETE /events/:id
 Delete an event.
 
-Response:
+**URL**: `/events/:id`
+
+**Method**: `DELETE`
+
+**Auth required**: Yes (JWT token)
+
+**Path Parameters**:
+- `id`: Event ID
+
+**Success Response**:
+- **Code**: 200 OK
+- **Content**:
 ```json
 {
   "deleted": true
@@ -2531,7 +2643,7 @@ Events are automatically scraped daily at midnight using a scheduled cron job. N
 
 #### Manual Scraping
 
-You can also trigger the scraper manually via the API:
+You can also trigger the scraper manually via the API (requires authentication):
 
 ```http
 POST /events/scrape
