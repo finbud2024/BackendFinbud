@@ -1610,7 +1610,7 @@ If some entries were duplicates and skipped:
 
 #### Query Cryptocurrency Data
 
-Retrieves historical price data for a specific cryptocurrency within a date range.
+Retrieves historical price data for one or multiple cryptocurrencies within a date range.
 
 **URL**: `/crypto/query`
 
@@ -1619,13 +1619,20 @@ Retrieves historical price data for a specific cryptocurrency within a date rang
 **Auth required**: Yes (JWT token)
 
 **Query Parameters**:
-- `symbol` (required): Cryptocurrency symbol (e.g., BTC, ETH)
+- `symbol` (optional): Single cryptocurrency symbol (e.g., BTC)
+- `symbols` (optional): Multiple cryptocurrency symbols as comma-separated values (e.g., BTC,ETH,XRP)
 - `startDate` (optional): Start date in ISO format (defaults to 30 days ago)
 - `endDate` (optional): End date in ISO format (defaults to current date)
 
-**Example**:
+> Note: You must provide either `symbol` or `symbols`, but not both.
+
+**Examples**:
 ```
 GET /crypto/query?symbol=BTC&startDate=2024-02-01T00:00:00Z&endDate=2024-03-01T00:00:00Z
+```
+
+```
+GET /crypto/query?symbols=BTC,ETH,SOL&startDate=2024-02-01T00:00:00Z&endDate=2024-03-01T00:00:00Z
 ```
 
 **Success Response**:
@@ -1650,15 +1657,15 @@ GET /crypto/query?symbol=BTC&startDate=2024-02-01T00:00:00Z&endDate=2024-03-01T0
       "updatedAt": "2024-03-22T12:34:52.112Z"
     },
     {
-      "_id": "65fd839c1faec8a64cbf4a89",
-      "cryptoName": "Bitcoin",
-      "symbol": "BTC",
-      "open": 52036.15000000,
-      "low": 50933.75000000,
-      "high": 52162.80000000,
-      "close": 51258.94000000,
-      "volume": 21485.96320000,
-      "date": "2024-02-27T00:00:00.000Z",
+      "_id": "65fd839c1faec8a64cbf4b91",
+      "cryptoName": "Ethereum",
+      "symbol": "ETH",
+      "open": 2951.45000000,
+      "low": 2885.11000000,
+      "high": 3011.25000000,
+      "close": 2975.80000000,
+      "volume": 12583.74521000,
+      "date": "2024-02-28T00:00:00.000Z",
       "createdAt": "2024-03-22T12:34:52.112Z",
       "updatedAt": "2024-03-22T12:34:52.112Z"
     }
@@ -1673,13 +1680,13 @@ If no data is found, it returns an empty array with a message:
 {
   "data": [],
   "count": 0,
-  "message": "No data found for BTC in the specified date range"
+  "message": "No data found for symbols [BTC, ETH, SOL] in the specified date range"
 }
 ```
 
 #### Get Latest Cryptocurrency Entry
 
-Retrieves the most recent data entry for a specific cryptocurrency or across all cryptocurrencies.
+Retrieves the most recent data entry for one or multiple cryptocurrencies.
 
 **URL**: `/crypto/latest`
 
@@ -1688,9 +1695,21 @@ Retrieves the most recent data entry for a specific cryptocurrency or across all
 **Auth required**: Yes (JWT token)
 
 **Query Parameters**: 
-- `symbol=[string]` (optional) the cryptocurrency symbol to retrieve
+- `symbol` (optional): Single cryptocurrency symbol (e.g., BTC)
+- `symbols` (optional): Multiple cryptocurrency symbols as comma-separated values (e.g., BTC,ETH,XRP)
 
-**Success Response**:
+> Note: You should provide either `symbol` or `symbols`, but not both.
+
+**Examples**:
+```
+GET /crypto/latest?symbol=BTC
+```
+
+```
+GET /crypto/latest?symbols=BTC,ETH,SOL
+```
+
+**Success Response (Single Symbol)**:
 
 - **Code**: 200 OK
 - **Content**:
@@ -1713,12 +1732,59 @@ Retrieves the most recent data entry for a specific cryptocurrency or across all
 }
 ```
 
-If no data is found, it returns an object with null data and a message:
+**Success Response (Multiple Symbols)**:
+
+- **Code**: 200 OK
+- **Content**:
+
+```json
+{
+  "data": [
+    {
+      "_id": "65fd839c1faec8a64cbf4a8a",
+      "cryptoName": "Bitcoin",
+      "symbol": "BTC",
+      "open": 51394.78000000,
+      "low": 51082.08000000,
+      "high": 52555.28000000,
+      "close": 52145.26000000,
+      "volume": 25413.12890000,
+      "date": "2024-02-28T00:00:00.000Z",
+      "createdAt": "2024-03-22T12:34:52.112Z",
+      "updatedAt": "2024-03-22T12:34:52.112Z"
+    },
+    {
+      "_id": "65fd839c1faec8a64cbf4b91",
+      "cryptoName": "Ethereum",
+      "symbol": "ETH",
+      "open": 2951.45000000,
+      "low": 2885.11000000,
+      "high": 3011.25000000,
+      "close": 2975.80000000,
+      "volume": 12583.74521000,
+      "date": "2024-02-28T00:00:00.000Z",
+      "createdAt": "2024-03-22T12:34:52.112Z",
+      "updatedAt": "2024-03-22T12:34:52.112Z"
+    }
+  ]
+}
+```
+
+If no data is found for a single symbol:
 
 ```json
 {
   "data": null,
   "message": "No latest data found for symbol BTC"
+}
+```
+
+If no data is found for multiple symbols:
+
+```json
+{
+  "data": [],
+  "message": "No latest data found for symbols [BTC, ETH, SOL]"
 }
 ```
 

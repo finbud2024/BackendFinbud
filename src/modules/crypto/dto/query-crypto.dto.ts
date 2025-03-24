@@ -1,10 +1,17 @@
-import { IsDate, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { IsArray, IsDate, IsNotEmpty, IsOptional, IsString, ValidateIf } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class QueryCryptoDto {
-  @IsNotEmpty()
+  @ValidateIf(o => !o.symbols)
+  @IsOptional()
   @IsString()
-  symbol: string;
+  symbol?: string;
+
+  @ValidateIf(o => !o.symbol)
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  symbols?: string[];
 
   @IsOptional()
   @IsDate()

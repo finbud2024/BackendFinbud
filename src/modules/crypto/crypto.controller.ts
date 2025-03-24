@@ -12,10 +12,23 @@ export class CryptoController {
   constructor(private readonly cryptoService: CryptoService) {}
 
   /**
-   * Query cryptocurrency data by symbol and date range
+   * Query cryptocurrency data by symbol(s) and date range
    */
   @Get('query')
-  async queryCryptoData(@Query() queryDto: QueryCryptoDto) {
+  async queryCryptoData(@Query() query: any) {
+    const queryDto = new QueryCryptoDto();
+    
+    // Handle multiple symbols if provided as comma-separated string
+    if (query.symbols && typeof query.symbols === 'string') {
+      queryDto.symbols = query.symbols.split(',').map(s => s.trim());
+    } else {
+      queryDto.symbol = query.symbol;
+    }
+    
+    // Copy date parameters
+    queryDto.startDate = query.startDate ? new Date(query.startDate) : undefined;
+    queryDto.endDate = query.endDate ? new Date(query.endDate) : undefined;
+    
     return this.cryptoService.queryData(queryDto);
   }
 
@@ -55,10 +68,17 @@ export class CryptoController {
   }
 
   /**
-   * Get the latest cryptocurrency entry
+   * Get the latest cryptocurrency entry for one or multiple symbols
    */
   @Get('latest')
-  async getLatestCrypto(@Query('symbol') symbol?: string) {
+  async getLatestCrypto(@Query('symbol') symbol?: string, @Query('symbols') symbolsParam?: string) {
+    // Handle multiple symbols if provided as comma-separated string
+    if (symbolsParam) {
+      const symbols = symbolsParam.split(',').map(s => s.trim());
+      return this.cryptoService.getFormattedLatestEntry(symbols);
+    }
+    
+    // Handle single symbol case
     return this.cryptoService.getFormattedLatestEntry(symbol);
   }
 } 

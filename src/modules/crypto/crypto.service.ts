@@ -15,31 +15,64 @@ export class CryptoService extends BaseService<CryptoDocument> {
   }
 
   /**
-   * Find crypto data by symbol and date range
-   * @param queryDto Query parameters containing symbol and date range
+   * Find crypto data by symbol(s) and date range
+   * @param queryDto Query parameters containing symbol(s) and date range
    * @returns Array of crypto documents
    */
   async findBySymbolAndDateRange(queryDto: QueryCryptoDto): Promise<Crypto[]> {
-    const { symbol, startDate, endDate } = queryDto;
+    const { symbol, symbols, startDate, endDate } = queryDto;
     
     // Set default date range if not provided
     const start = startDate || moment().subtract(30, 'days').toDate();
     const end = endDate || new Date();
     
-    this.logger.debug(`Searching for ${symbol} from ${start.toISOString()} to ${end.toISOString()}`);
+    // Handle single symbol case
+    if (symbol) {
+      this.logger.debug(`Searching for ${symbol} from ${start.toISOString()} to ${end.toISOString()}`);
+      return this.cryptoRepository.findBySymbolAndDateRange(symbol, start, end);
+    }
     
-    // Get data from the repository without throwing an error if nothing is found
-    return this.cryptoRepository.findBySymbolAndDateRange(symbol, start, end);
+    // Handle multiple symbols case
+    if (symbols && symbols.length > 0) {
+      this.logger.debug(`Searching for multiple symbols: [${symbols.join(', ')}] from ${start.toISOString()} to ${end.toISOString()}`);
+      
+      // Use Promise.all to fetch data for all symbols in parallel
+      const results = await Promise.all(
+        symbols.map(sym => this.cryptoRepository.findBySymbolAndDateRange(sym, start, end))
+      );
+      
+      // Flatten the results array
+      return results.flat();
+    }
+    
+    // No symbols provided
+    this.logger.debug('No symbol(s) provided for search');
+    return [];
   }
 
   /**
-   * Get the latest entry in the database
-   * @param symbol Optional cryptocurrency symbol
+   * Get the latest entry in the database for a single symbol
+   * @param symbol Cryptocurrency symbol
    * @returns The latest crypto document or null
    */
   async getLatestEntry(symbol?: string): Promise<Crypto | null> {
     // Simply return the repository result, which will be null if no document is found
     return this.cryptoRepository.getLatestEntry(symbol);
+  }
+
+  /**
+   * Get the latest entries for multiple symbols
+   * @param symbols Array of cryptocurrency symbols
+   * @returns Array of latest crypto documents
+   */
+  async getLatestEntries(symbols: string[]): Promise<Crypto[]> {
+    // Use Promise.all to fetch latest entries for each symbol in parallel
+    const latestEntries = await Promise.all(
+      symbols.map(symbol => this.cryptoRepository.getLatestEntry(symbol))
+    );
+    
+    // Filter out null results
+    return latestEntries.filter(entry => entry !== null) as Crypto[];
   }
 
   /**
@@ -225,27 +258,38 @@ export class CryptoService extends BaseService<CryptoDocument> {
 
   /**
    * Query cryptocurrency data with formatted response
-   * @param queryDto Query parameters containing symbol and date range
+   * @param queryDto Query parameters containing symbol(s) and date range
    * @returns Formatted response with data array, count, and optional message
    */
   async queryData(queryDto: QueryCryptoDto): Promise<{ data: Crypto[]; count: number; message?: string }> {
-    // Handle missing symbol
-    if (!queryDto.symbol) {
+    const { symbol, symbols } = queryDto;
+    
+    // Handle missing symbol(s)
+    if (!symbol && (!symbols || symbols.length === 0)) {
       return {
         data: [],
         count: 0,
-        message: 'Symbol is required for querying cryptocurrency data'
+        message: 'At least one cryptocurrency symbol is required'
       };
     }
     
     // Get data from repository
     const results = await this.findBySymbolAndDateRange(queryDto);
     
+    // Get queried symbols for message formatting
+    const queriedSymbols = symbol 
+      ? [symbol] 
+      : (symbols || []);
+    
+    const symbolsText = queriedSymbols.length > 1
+      ? `symbols [${queriedSymbols.join(', ')}]`
+      : `symbol ${queriedSymbols[0] || 'unknown'}`;
+    
     // Format the response
     return {
       data: results,
       count: results.length,
-      message: results.length === 0 ? `No data found for ${queryDto.symbol} in the specified date range` : undefined
+      message: results.length === 0 ? `No data found for ${symbolsText} in the specified date range` : undefined
     };
   }
 
@@ -275,15 +319,26 @@ export class CryptoService extends BaseService<CryptoDocument> {
 
   /**
    * Get latest entry with formatted response
-   * @param symbol Optional cryptocurrency symbol
+   * @param symbolOrSymbols Single cryptocurrency symbol or array of symbols
    * @returns Formatted response with data and optional message
    */
-  async getFormattedLatestEntry(symbol?: string): Promise<{ data: Crypto | null; message?: string }> {
-    const result = await this.getLatestEntry(symbol);
+  async getFormattedLatestEntry(symbolOrSymbols?: string | string[]): Promise<{ data: Crypto | Crypto[] | null; message?: string }> {
+    // Handle multiple symbols case
+    if (Array.isArray(symbolOrSymbols) && symbolOrSymbols.length > 0) {
+      const results = await this.getLatestEntries(symbolOrSymbols);
+      
+      return {
+        data: results.length > 0 ? results : [],
+        message: results.length === 0 ? `No latest data found for symbols [${symbolOrSymbols.join(', ')}]` : undefined
+      };
+    }
+    
+    // Handle single symbol case
+    const result = await this.getLatestEntry(symbolOrSymbols as string);
     
     return {
       data: result,
-      message: !result ? `No latest data found${symbol ? ` for symbol ${symbol}` : ''}` : undefined
+      message: !result ? `No latest data found${symbolOrSymbols ? ` for symbol ${symbolOrSymbols}` : ''}` : undefined
     };
   }
 
