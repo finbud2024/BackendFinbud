@@ -1400,145 +1400,392 @@ Updates multiple stock data entries for a specific symbol.
 
 The Portfolio module allows users to manage their investment portfolios and stock holdings.
 
-### Testing Portfolio Routes
+### User Endpoints
 
-Follow these steps to test the Portfolio API endpoints:
+These endpoints are designed for use in frontend applications, allowing users to manage their own portfolios.
 
-#### Prerequisites
-1. Start the backend server:
-   ```
-   npm run start:dev
-   ```
-2. Register a user or use an existing account to obtain a JWT token.
-3. Use a tool like Postman, cURL, or any HTTP client to make the requests.
-4. Set the JWT token in the Authorization header as `Bearer <your_token>`.
+#### Initialize Portfolio
 
-#### Test Flow
+Creates an empty portfolio and holdings for the current user.
 
-##### 1. Initialize Portfolio for the Current User
-```
-POST /api/portfolios/me/initialize
-```
-This creates an empty portfolio and holdings for the current user.
+**URL**: `/portfolios/me/initialize`
 
-##### 2. Add Stock Holdings
-```
-PUT /api/portfolios/me/holdings/AAPL
-Content-Type: application/json
+**Method**: `POST`
 
+**Auth required**: Yes (JWT token)
+
+**Success Response**:
+- **Code**: 201 CREATED
+- **Content**: Portfolio and holdings objects
+
+#### Create Portfolio
+
+Creates a new portfolio for the authenticated user.
+
+**URL**: `/portfolios/me`
+
+**Method**: `POST`
+
+**Auth required**: Yes (JWT token)
+
+**Request Body**:
+```json
 {
-  "quantity": 10,
-  "purchasePrice": 175.50
+  "portfolio": [
+    {
+      "date": "2023-05-15T00:00:00.000Z",
+      "totalValue": 0
+    }
+  ]
 }
 ```
-This adds Apple stock to your holdings. You can also use `shares` instead of `quantity` and `averagePrice` instead of `purchasePrice`.
 
-##### 3. Add More Stocks
-```
-PUT /api/portfolios/me/holdings/MSFT
-Content-Type: application/json
+**Success Response**:
+- **Code**: 201 CREATED
+- **Content**: The created portfolio object
 
-{
-  "quantity": 5,
-  "purchasePrice": 325.75
-}
-```
-This adds Microsoft stock to your holdings.
+#### Get Current Portfolio
 
-##### 4. Get Current Portfolio
-```
-GET /api/portfolios/me
-```
-This retrieves your portfolio information, including total value and performance metrics.
+Retrieves the portfolio for the authenticated user.
 
-##### 5. Get Stock Holdings
-```
-GET /api/portfolios/me/holdings
-```
-This retrieves all your stock holdings with details like quantity, average price, and current value.
+**URL**: `/portfolios/me`
 
-##### 6. Add a Portfolio Value Entry
-```
-POST /api/portfolios/me/entries
-Content-Type: application/json
+**Method**: `GET`
 
+**Auth required**: Yes (JWT token)
+
+**Success Response**:
+- **Code**: 200 OK
+- **Content**: Portfolio object including historical data
+
+#### Get Portfolio History
+
+Retrieves the portfolio value history between specified dates.
+
+**URL**: `/portfolios/me/history`
+
+**Method**: `GET`
+
+**Auth required**: Yes (JWT token)
+
+**Query Parameters**:
+- `startDate` (Date, optional): Start date in ISO format
+- `endDate` (Date, optional): End date in ISO format
+
+**Success Response**:
+- **Code**: 200 OK
+- **Content**: Array of portfolio entries with dates and values
+
+#### Get Stock Holdings
+
+Retrieves all stock holdings for the authenticated user.
+
+**URL**: `/portfolios/me/holdings`
+
+**Method**: `GET`
+
+**Auth required**: Yes (JWT token)
+
+**Success Response**:
+- **Code**: 200 OK
+- **Content**: Holdings object with array of stocks
+
+#### Add Portfolio Entry
+
+Adds a historical portfolio value point.
+
+**URL**: `/portfolios/me/entries`
+
+**Method**: `POST`
+
+**Auth required**: Yes (JWT token)
+
+**Request Body**:
+```json
 {
   "date": "2023-07-15T00:00:00.000Z",
   "totalValue": 5500.25
 }
 ```
-This adds a historical portfolio value point.
 
-##### 7. Update a Stock Holding
-```
-PUT /api/portfolios/me/holdings/AAPL
-Content-Type: application/json
+**Success Response**:
+- **Code**: 201 CREATED
+- **Content**: Updated portfolio object
 
+#### Update Portfolio
+
+Updates the portfolio for the authenticated user.
+
+**URL**: `/portfolios/me`
+
+**Method**: `PUT`
+
+**Auth required**: Yes (JWT token)
+
+**Request Body**:
+```json
 {
-  "quantity": 15,
-  "purchasePrice": 172.30
+  "portfolio": [
+    {
+      "date": "2023-08-01T00:00:00.000Z",
+      "totalValue": 6000.50
+    }
+  ]
 }
 ```
-This updates your Apple stock holding (e.g., after buying more shares).
 
-##### 8. Remove a Stock Holding
+**Success Response**:
+- **Code**: 200 OK
+- **Content**: Updated portfolio object
+
+#### Update Stock Holding
+
+Updates or adds a stock holding.
+
+**URL**: `/portfolios/me/holdings/:symbol`
+
+**Method**: `PUT`
+
+**Auth required**: Yes (JWT token)
+
+**Path Parameters**:
+- `symbol` (string): Stock symbol (e.g., AAPL, MSFT)
+
+**Request Body**:
+```json
+{
+  "quantity": 10,
+  "purchasePrice": 175.50
+}
 ```
-DELETE /api/portfolios/me/holdings/MSFT
+
+**Note**: You can also use `shares` instead of `quantity` and `averagePrice` instead of `purchasePrice`.
+
+**Success Response**:
+- **Code**: 200 OK
+- **Content**: Updated holdings object
+
+#### Remove Stock Holding
+
+Removes a stock from the user's holdings.
+
+**URL**: `/portfolios/me/holdings/:symbol`
+
+**Method**: `DELETE`
+
+**Auth required**: Yes (JWT token)
+
+**Path Parameters**:
+- `symbol` (string): Stock symbol to remove (e.g., AAPL, MSFT)
+
+**Success Response**:
+- **Code**: 200 OK
+- **Content**: Updated holdings object
+
+### Admin Endpoints
+
+These endpoints are restricted to users with admin privileges.
+
+#### Get All Portfolios
+
+Retrieves all portfolios in the system.
+
+**URL**: `/portfolios`
+
+**Method**: `GET`
+
+**Auth required**: Yes (JWT token with admin privileges)
+
+**Success Response**:
+- **Code**: 200 OK
+- **Content**: Array of all portfolio objects
+
+#### Get a User's Portfolio
+
+Retrieves a specific user's portfolio.
+
+**URL**: `/portfolios/:userId`
+
+**Method**: `GET`
+
+**Auth required**: Yes (JWT token with admin privileges)
+
+**Path Parameters**:
+- `userId` (string): User ID
+
+**Success Response**:
+- **Code**: 200 OK
+- **Content**: Portfolio object for the specified user
+
+#### Get a User's Portfolio History
+
+Retrieves a specific user's portfolio history.
+
+**URL**: `/portfolios/:userId/history`
+
+**Method**: `GET`
+
+**Auth required**: Yes (JWT token with admin privileges)
+
+**Path Parameters**:
+- `userId` (string): User ID
+
+**Query Parameters**:
+- `startDate` (Date, optional): Start date in ISO format
+- `endDate` (Date, optional): End date in ISO format
+
+**Success Response**:
+- **Code**: 200 OK
+- **Content**: Array of portfolio entries for the specified user
+
+#### Get a User's Holdings
+
+Retrieves a specific user's stock holdings.
+
+**URL**: `/portfolios/:userId/holdings`
+
+**Method**: `GET`
+
+**Auth required**: Yes (JWT token with admin privileges)
+
+**Path Parameters**:
+- `userId` (string): User ID
+
+**Success Response**:
+- **Code**: 200 OK
+- **Content**: Holdings object for the specified user
+
+#### Create a User's Portfolio
+
+Creates a portfolio for a specific user.
+
+**URL**: `/portfolios`
+
+**Method**: `POST`
+
+**Auth required**: Yes (JWT token with admin privileges)
+
+**Request Body**:
+```json
+{
+  "userId": "60d21b4667d0d8992e610c85",
+  "portfolio": [
+    {
+      "date": "2023-05-15T00:00:00.000Z",
+      "totalValue": 0
+    }
+  ]
+}
 ```
-This removes Microsoft stock from your holdings.
 
-##### 9. Get Portfolio History
+**Success Response**:
+- **Code**: 201 CREATED
+- **Content**: The created portfolio object
+
+#### Update a User's Portfolio
+
+Updates a specific user's portfolio.
+
+**URL**: `/portfolios/:userId`
+
+**Method**: `PUT`
+
+**Auth required**: Yes (JWT token with admin privileges)
+
+**Path Parameters**:
+- `userId` (string): User ID
+
+**Request Body**:
+```json
+{
+  "portfolio": [
+    {
+      "date": "2023-08-01T00:00:00.000Z",
+      "totalValue": 6000.50
+    }
+  ]
+}
 ```
-GET /api/portfolios/me/history?startDate=2023-01-01T00:00:00.000Z&endDate=2023-12-31T23:59:59.999Z
-```
-This retrieves your portfolio value history between the specified dates.
 
-#### Admin Operations (Admin Only)
+**Success Response**:
+- **Code**: 200 OK
+- **Content**: Updated portfolio object
 
-Admins can perform additional operations:
+#### Initialize a User's Portfolio
 
-##### 1. Get All Portfolios
-```
-GET /api/portfolios
-```
+Creates an empty portfolio and holdings for a specific user.
 
-##### 2. Get a Specific User's Portfolio
-```
-GET /api/portfolios/60d21b4667d0d8992e610c85
-```
-Replace `60d21b4667d0d8992e610c85` with an actual user ID.
+**URL**: `/portfolios/:userId/initialize`
 
-##### 3. Initialize a User's Portfolio
-```
-POST /api/portfolios/60d21b4667d0d8992e610c85/initialize
-```
-Replace `60d21b4667d0d8992e610c85` with an actual user ID.
+**Method**: `POST`
 
-### Portfolio API Endpoints
+**Auth required**: Yes (JWT token with admin privileges)
 
-#### User Endpoints
+**Path Parameters**:
+- `userId` (string): User ID
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/portfolios/me` | Get current user's portfolio |
-| GET | `/portfolios/me/history` | Get current user's portfolio history |
-| GET | `/portfolios/me/holdings` | Get current user's stock holdings |
-| POST | `/portfolios/me` | Create portfolio for current user |
-| POST | `/portfolios/me/holdings` | Create holdings for current user |
-| POST | `/portfolios/me/entries` | Add entry to current user's portfolio |
-| POST | `/portfolios/me/initialize` | Initialize portfolio for current user |
-| PUT | `/portfolios/me` | Update current user's portfolio |
-| PUT | `/portfolios/me/holdings/:symbol` | Update a stock holding for current user |
-| DELETE | `/portfolios/me/holdings/:symbol` | Remove a stock from current user's holdings |
+**Success Response**:
+- **Code**: 201 CREATED
+- **Content**: Portfolio and holdings objects
 
-#### Admin Endpoints
+### Testing Flow
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/portfolios` | Get all portfolios (admin only) |
-| GET | `/portfolios/:userId` | Get a specific user's portfolio (admin only) |
-| GET | `/portfolios/:userId/history` | Get a user's portfolio history (admin only) |
-| GET | `/portfolios/:userId/holdings` | Get a user's holdings (admin only) |
-| POST | `/portfolios` | Create a portfolio for a user (admin only) |
-| PUT | `/portfolios/:userId` | Update a user's portfolio (admin only) |
-| POST | `/portfolios/:userId/initialize` | Initialize portfolio for a user (admin only) | 
+To test the portfolio functionality end-to-end, follow these steps:
+
+1. **Log in** to obtain a JWT token
+2. **Initialize your portfolio**:
+   ```
+   POST /api/portfolios/me/initialize
+   ```
+3. **Add stocks to your portfolio**:
+   ```
+   PUT /api/portfolios/me/holdings/AAPL
+   Content-Type: application/json
+   {
+     "quantity": 10,
+     "purchasePrice": 175.50
+   }
+   ```
+4. **Add another stock**:
+   ```
+   PUT /api/portfolios/me/holdings/MSFT
+   Content-Type: application/json
+   {
+     "quantity": 5,
+     "purchasePrice": 325.75
+   }
+   ```
+5. **Check your portfolio**:
+   ```
+   GET /api/portfolios/me
+   ```
+6. **View your holdings**:
+   ```
+   GET /api/portfolios/me/holdings
+   ```
+7. **Add a historical entry**:
+   ```
+   POST /api/portfolios/me/entries
+   Content-Type: application/json
+   {
+     "date": "2023-07-15T00:00:00.000Z",
+     "totalValue": 5500.25
+   }
+   ```
+8. **Update a holding**:
+   ```
+   PUT /api/portfolios/me/holdings/AAPL
+   Content-Type: application/json
+   {
+     "quantity": 15,
+     "purchasePrice": 172.30
+   }
+   ```
+9. **Remove a holding**:
+   ```
+   DELETE /api/portfolios/me/holdings/MSFT
+   ```
+10. **View portfolio history**:
+    ```
+    GET /api/portfolios/me/history?startDate=2023-01-01T00:00:00.000Z&endDate=2023-12-31T23:59:59.999Z
+    ``` 
