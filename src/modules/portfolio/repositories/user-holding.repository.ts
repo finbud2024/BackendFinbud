@@ -39,14 +39,18 @@ export class UserHoldingRepository extends BaseRepository<UserHoldingDocument> {
     
     if (holding) {
       // Update existing stock holding
+      const updateFields: any = {
+        'stocks.$.quantity': updateData.quantity
+      };
+      
+      // Add optional fields if provided
+      if (updateData.purchasePrice !== undefined) {
+        updateFields['stocks.$.purchasePrice'] = updateData.purchasePrice;
+      }
+      
       return this.userHoldingModel.findOneAndUpdate(
         { userId, 'stocks.stockSymbol': stockSymbol },
-        { 
-          $set: { 
-            'stocks.$.quantity': updateData.quantity,
-            ...(updateData.purchasePrice && { 'stocks.$.purchasePrice': updateData.purchasePrice })
-          } 
-        },
+        { $set: updateFields },
         { new: true }
       ).exec();
     } else {
@@ -94,7 +98,10 @@ export class UserHoldingRepository extends BaseRepository<UserHoldingDocument> {
       return 0;
     }
     
-    // Sum up the purchase prices of all stocks
-    return holdings.stocks.reduce((total, stock) => total + stock.purchasePrice, 0);
+    // Calculate the total value based on quantity and purchase price
+    return holdings.stocks.reduce(
+      (total, stock) => total + (stock.quantity * stock.purchasePrice), 
+      0
+    );
   }
 } 

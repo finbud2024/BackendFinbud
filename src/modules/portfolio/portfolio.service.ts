@@ -219,39 +219,46 @@ export class PortfolioService extends BaseService<PortfolioDocument> {
   async initializeUserPortfolio(userId: string): Promise<{ portfolio: PortfolioDocument; holdings: UserHoldingDocument }> {
     this.logger.log(`Initializing portfolio and holdings for user: ${userId}`);
     
-    const session = await mongoose.startSession();
-    session.startTransaction();
-    
     try {
-      // Create empty portfolio with initial zero value
-      const portfolioDto: CreatePortfolioDto = {
-        userId,
-        portfolio: [{
-          date: new Date(),
-          totalValue: 0
-        }]
-      };
+      // Check if portfolio already exists
+      let portfolio = await this.portfolioRepository.findPortfolioByUserId(userId);
       
-      // Use base service for creation
-      const portfolio = await this.portfolioModel.create([portfolioDto], { session }).then(docs => docs[0]);
+      // Create portfolio if it doesn't exist
+      if (!portfolio) {
+        const portfolioDto: CreatePortfolioDto = {
+          userId,
+          portfolio: [{
+            date: new Date(),
+            totalValue: 0
+          }]
+        };
+        
+        portfolio = await this.portfolioModel.create(portfolioDto);
+        this.logger.log(`Created new portfolio for user: ${userId}`);
+      } else {
+        this.logger.log(`Using existing portfolio for user: ${userId}`);
+      }
       
-      // Create empty holdings
-      const holdingDto: CreateUserHoldingDto = {
-        userId,
-        stocks: []
-      };
+      // Check if holdings exist
+      let holdings = await this.userHoldingRepository.findHoldingsByUserId(userId);
       
-      const holdings = await this.userHoldingModel.create([holdingDto], { session }).then(docs => docs[0]);
-      
-      await session.commitTransaction();
+      // Create holdings if they don't exist
+      if (!holdings) {
+        const holdingDto: CreateUserHoldingDto = {
+          userId,
+          stocks: []
+        };
+        
+        holdings = await this.userHoldingModel.create(holdingDto);
+        this.logger.log(`Created new holdings for user: ${userId}`);
+      } else {
+        this.logger.log(`Using existing holdings for user: ${userId}`);
+      }
       
       return { portfolio, holdings };
     } catch (error) {
       this.logger.error(`Error initializing user portfolio: ${error.message}`, error.stack);
-      await session.abortTransaction();
       throw error;
-    } finally {
-      session.endSession();
     }
   }
 } 

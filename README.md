@@ -1427,12 +1427,11 @@ PUT /api/portfolios/me/holdings/AAPL
 Content-Type: application/json
 
 {
-  "shares": 10,
-  "averagePrice": 175.50,
-  "currentPrice": 180.25
+  "quantity": 10,
+  "purchasePrice": 175.50
 }
 ```
-This adds Apple stock to your holdings.
+This adds Apple stock to your holdings. You can also use `shares` instead of `quantity` and `averagePrice` instead of `purchasePrice`.
 
 ##### 3. Add More Stocks
 ```
@@ -1440,9 +1439,8 @@ PUT /api/portfolios/me/holdings/MSFT
 Content-Type: application/json
 
 {
-  "shares": 5,
-  "averagePrice": 325.75,
-  "currentPrice": 330.20
+  "quantity": 5,
+  "purchasePrice": 325.75
 }
 ```
 This adds Microsoft stock to your holdings.
@@ -1477,9 +1475,8 @@ PUT /api/portfolios/me/holdings/AAPL
 Content-Type: application/json
 
 {
-  "shares": 15,
-  "averagePrice": 172.30,
-  "currentPrice": 180.25
+  "quantity": 15,
+  "purchasePrice": 172.30
 }
 ```
 This updates your Apple stock holding (e.g., after buying more shares).
