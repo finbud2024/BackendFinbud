@@ -8,9 +8,10 @@ This document provides comprehensive documentation for the FinBud API, covering 
 - [Users](#users)
 - [Transactions](#transactions)
 - [Goals](#goals)
+- [Stocks](#stocks)
+- [Portfolio](#portfolio)
 - [Error Handling](#error-handling)
 - [Getting Started](#getting-started)
-- [Stocks](#stocks)
 
 ## Base URL
 
@@ -1394,3 +1395,153 @@ Updates multiple stock data entries for a specific symbol.
 3. **Date Format Issues**
    - Make sure dates are in ISO format (YYYY-MM-DD)
    - The API includes a custom date parser to handle various formats 
+
+## Portfolio
+
+The Portfolio module allows users to manage their investment portfolios and stock holdings.
+
+### Testing Portfolio Routes
+
+Follow these steps to test the Portfolio API endpoints:
+
+#### Prerequisites
+1. Start the backend server:
+   ```
+   npm run start:dev
+   ```
+2. Register a user or use an existing account to obtain a JWT token.
+3. Use a tool like Postman, cURL, or any HTTP client to make the requests.
+4. Set the JWT token in the Authorization header as `Bearer <your_token>`.
+
+#### Test Flow
+
+##### 1. Initialize Portfolio for the Current User
+```
+POST /api/portfolios/me/initialize
+```
+This creates an empty portfolio and holdings for the current user.
+
+##### 2. Add Stock Holdings
+```
+PUT /api/portfolios/me/holdings/AAPL
+Content-Type: application/json
+
+{
+  "shares": 10,
+  "averagePrice": 175.50,
+  "currentPrice": 180.25
+}
+```
+This adds Apple stock to your holdings.
+
+##### 3. Add More Stocks
+```
+PUT /api/portfolios/me/holdings/MSFT
+Content-Type: application/json
+
+{
+  "shares": 5,
+  "averagePrice": 325.75,
+  "currentPrice": 330.20
+}
+```
+This adds Microsoft stock to your holdings.
+
+##### 4. Get Current Portfolio
+```
+GET /api/portfolios/me
+```
+This retrieves your portfolio information, including total value and performance metrics.
+
+##### 5. Get Stock Holdings
+```
+GET /api/portfolios/me/holdings
+```
+This retrieves all your stock holdings with details like quantity, average price, and current value.
+
+##### 6. Add a Portfolio Value Entry
+```
+POST /api/portfolios/me/entries
+Content-Type: application/json
+
+{
+  "date": "2023-07-15T00:00:00.000Z",
+  "totalValue": 5500.25
+}
+```
+This adds a historical portfolio value point.
+
+##### 7. Update a Stock Holding
+```
+PUT /api/portfolios/me/holdings/AAPL
+Content-Type: application/json
+
+{
+  "shares": 15,
+  "averagePrice": 172.30,
+  "currentPrice": 180.25
+}
+```
+This updates your Apple stock holding (e.g., after buying more shares).
+
+##### 8. Remove a Stock Holding
+```
+DELETE /api/portfolios/me/holdings/MSFT
+```
+This removes Microsoft stock from your holdings.
+
+##### 9. Get Portfolio History
+```
+GET /api/portfolios/me/history?startDate=2023-01-01T00:00:00.000Z&endDate=2023-12-31T23:59:59.999Z
+```
+This retrieves your portfolio value history between the specified dates.
+
+#### Admin Operations (Admin Only)
+
+Admins can perform additional operations:
+
+##### 1. Get All Portfolios
+```
+GET /api/portfolios
+```
+
+##### 2. Get a Specific User's Portfolio
+```
+GET /api/portfolios/60d21b4667d0d8992e610c85
+```
+Replace `60d21b4667d0d8992e610c85` with an actual user ID.
+
+##### 3. Initialize a User's Portfolio
+```
+POST /api/portfolios/60d21b4667d0d8992e610c85/initialize
+```
+Replace `60d21b4667d0d8992e610c85` with an actual user ID.
+
+### Portfolio API Endpoints
+
+#### User Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/portfolios/me` | Get current user's portfolio |
+| GET | `/portfolios/me/history` | Get current user's portfolio history |
+| GET | `/portfolios/me/holdings` | Get current user's stock holdings |
+| POST | `/portfolios/me` | Create portfolio for current user |
+| POST | `/portfolios/me/holdings` | Create holdings for current user |
+| POST | `/portfolios/me/entries` | Add entry to current user's portfolio |
+| POST | `/portfolios/me/initialize` | Initialize portfolio for current user |
+| PUT | `/portfolios/me` | Update current user's portfolio |
+| PUT | `/portfolios/me/holdings/:symbol` | Update a stock holding for current user |
+| DELETE | `/portfolios/me/holdings/:symbol` | Remove a stock from current user's holdings |
+
+#### Admin Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/portfolios` | Get all portfolios (admin only) |
+| GET | `/portfolios/:userId` | Get a specific user's portfolio (admin only) |
+| GET | `/portfolios/:userId/history` | Get a user's portfolio history (admin only) |
+| GET | `/portfolios/:userId/holdings` | Get a user's holdings (admin only) |
+| POST | `/portfolios` | Create a portfolio for a user (admin only) |
+| PUT | `/portfolios/:userId` | Update a user's portfolio (admin only) |
+| POST | `/portfolios/:userId/initialize` | Initialize portfolio for a user (admin only) | 
