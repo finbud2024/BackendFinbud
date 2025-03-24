@@ -2254,6 +2254,13 @@ Get a list of events with optional filtering and pagination.
 - `sortBy`: Field to sort by (default: date)
 - `sortDirection`: Sort direction (asc/desc, default: asc)
 
+**Example Requests**:
+```
+GET /api/events?page=1&limit=20
+GET /api/events?name=Finance&sortBy=date&sortDirection=desc
+GET /api/events?host=Bloomberg&location=New York
+```
+
 **Success Response**:
 - **Code**: 200 OK
 - **Content**:
@@ -2272,7 +2279,10 @@ Get a list of events with optional filtering and pagination.
         "url": "https://example.com/fintech-summit",
         "image": "https://example.com/images/fintech-summit.jpg",
         "lat": 40.7128,
-        "lng": -74.006
+        "lng": -74.006,
+        "formattedDate": "September 15, 2023",
+        "formattedTime": "08:00 AM",
+        "displayDate": "September 15, 2023 at 08:00 AM"
       }
     ],
     "pagination": {
@@ -2321,7 +2331,10 @@ Get events with valid coordinates for map display.
       "url": "https://example.com/fintech-summit",
       "image": "https://example.com/images/fintech-summit.jpg",
       "lat": 40.7128,
-      "lng": -74.006
+      "lng": -74.006,
+      "formattedDate": "September 15, 2023",
+      "formattedTime": "08:00 AM",
+      "displayDate": "September 15, 2023 at 08:00 AM"
     }
   ]
 }
@@ -2339,6 +2352,12 @@ Get upcoming events.
 **Query Parameters**:
 - `limit`: Maximum number of events to return (default: 10)
 
+**Example Requests**:
+```
+GET /api/events/upcoming
+GET /api/events/upcoming?limit=5
+```
+
 **Success Response**:
 - **Code**: 200 OK
 - **Content**:
@@ -2355,7 +2374,10 @@ Get upcoming events.
       "url": "https://example.com/fintech-summit",
       "image": "https://example.com/images/fintech-summit.jpg",
       "lat": 40.7128,
-      "lng": -74.006
+      "lng": -74.006,
+      "formattedDate": "September 15, 2023",
+      "formattedTime": "08:00 AM",
+      "displayDate": "September 15, 2023 at 08:00 AM"
     }
   ],
   "count": 1
@@ -2375,6 +2397,11 @@ Get events for a specific month and year.
 - `month`: Month number (1-12)
 - `year`: Year (e.g., 2023)
 
+**Example Requests**:
+```
+GET /api/events/calendar?month=9&year=2023
+```
+
 **Success Response**:
 - **Code**: 200 OK
 - **Content**:
@@ -2391,7 +2418,10 @@ Get events for a specific month and year.
       "url": "https://example.com/fintech-summit",
       "image": "https://example.com/images/fintech-summit.jpg",
       "lat": 40.7128,
-      "lng": -74.006
+      "lng": -74.006,
+      "formattedDate": "September 15, 2023",
+      "formattedTime": "08:00 AM",
+      "displayDate": "September 15, 2023 at 08:00 AM"
     }
   ]
 }
@@ -2407,9 +2437,15 @@ Get events near a specific location.
 **Auth required**: Yes (JWT token)
 
 **Query Parameters**:
-- `lat`: Latitude
-- `lng`: Longitude
+- `lat`: Latitude (required)
+- `lng`: Longitude (required)
 - `radius`: Search radius in kilometers (default: 10)
+
+**Example Requests**:
+```
+GET /api/events/nearby?lat=40.7128&lng=-74.006
+GET /api/events/nearby?lat=40.7128&lng=-74.006&radius=25
+```
 
 **Success Response**:
 - **Code**: 200 OK
@@ -2427,10 +2463,27 @@ Get events near a specific location.
       "url": "https://example.com/fintech-summit",
       "image": "https://example.com/images/fintech-summit.jpg",
       "lat": 40.7128,
-      "lng": -74.006
+      "lng": -74.006,
+      "distance": 0,
+      "distanceKm": 0,
+      "formattedDate": "September 15, 2023",
+      "formattedTime": "08:00 AM",
+      "displayDate": "September 15, 2023 at 08:00 AM"
     }
   ],
   "count": 1
+}
+```
+
+**Error Response**:
+- **Code**: 400 BAD REQUEST
+- **Content**:
+```json
+{
+  "statusCode": 400,
+  "message": "Missing or invalid coordinates. Both lat and lng parameters are required",
+  "errorCode": "EVENT_INVALID_DATA",
+  "timestamp": "2023-03-23T01:23:45.678Z"
 }
 ```
 
@@ -2460,7 +2513,10 @@ Get a single event by ID.
   "url": "https://example.com/fintech-summit",
   "image": "https://example.com/images/fintech-summit.jpg",
   "lat": 40.7128,
-  "lng": -74.006
+  "lng": -74.006,
+  "formattedDate": "September 15, 2023",
+  "formattedTime": "08:00 AM",
+  "displayDate": "September 15, 2023 at 08:00 AM"
 }
 ```
 
@@ -2502,7 +2558,10 @@ Create a new event.
   "url": "https://example.com/fintech-summit",
   "image": "https://example.com/images/fintech-summit.jpg",
   "lat": 40.7128,
-  "lng": -74.006
+  "lng": -74.006,
+  "formattedDate": "September 15, 2023",
+  "formattedTime": "08:00 AM",
+  "displayDate": "September 15, 2023 at 08:00 AM"
 }
 ```
 
@@ -2604,7 +2663,10 @@ Update an existing event.
   "url": "https://example.com/fintech-summit",
   "image": "https://example.com/images/fintech-summit.jpg",
   "lat": 40.7128,
-  "lng": -74.006
+  "lng": -74.006,
+  "formattedDate": "September 15, 2023",
+  "formattedTime": "08:00 AM",
+  "displayDate": "September 15, 2023 at 08:00 AM"
 }
 ```
 

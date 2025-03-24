@@ -102,10 +102,15 @@ export class EventsService extends BaseService<EventDocument> {
     formatDates: boolean = false
   ): Promise<any> {
     try {
-      // Validate coordinates
+      // Validate if coordinates are provided
+      if (lat === undefined || lng === undefined || isNaN(lat) || isNaN(lng)) {
+        throw ExceptionFactory.eventInvalidData('Missing or invalid coordinates. Both lat and lng parameters are required.');
+      }
+      
+      // Validate coordinate ranges
       if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
         throw ExceptionFactory.eventLocationInvalid({
-          message: 'Invalid coordinates provided',
+          message: 'Invalid coordinates provided. Latitude must be between -90 and 90, longitude between -180 and 180.',
           lat,
           lng
         });
@@ -119,7 +124,7 @@ export class EventsService extends BaseService<EventDocument> {
       }
       
       this.logger.error(`Error retrieving events by location: ${error.message}`, error.stack);
-      throw ExceptionFactory.eventNotFound('nearby');
+      throw ExceptionFactory.eventValidationError(`Failed to retrieve nearby events: ${error.message}`);
     }
   }
 

@@ -5,6 +5,7 @@ import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { ScraperService } from './services/scraper.service';
 import { AdminGuard } from 'src/common/guards/admin.guard';
+import { ExceptionFactory } from '../../common/exceptions/app.exception';
 
 @Controller('events')
 @UseGuards(JwtAuthGuard)
@@ -67,8 +68,19 @@ export class EventsController {
     @Query('lng') lngParam: string,
     @Query('radius') radiusParam?: string
   ) {
+    // Validate required parameters
+    if (!latParam || !lngParam) {
+      throw ExceptionFactory.eventInvalidData('Both lat and lng parameters are required');
+    }
+    
     const lat = parseFloat(latParam);
     const lng = parseFloat(lngParam);
+    
+    // Check if parsing was successful
+    if (isNaN(lat) || isNaN(lng)) {
+      throw ExceptionFactory.eventInvalidData('lat and lng must be valid numbers');
+    }
+    
     const radius = radiusParam ? parseFloat(radiusParam) : 10; // Default 10 km radius
     
     const events = await this.eventsService.getEventsNearLocation(lat, lng, radius, true);
