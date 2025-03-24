@@ -13,6 +13,7 @@ import { TransactionsModule } from './modules/transactions/transactions.module';
 import { GoalsModule } from './modules/goals/goals.module';
 import { StocksModule } from './modules/stocks/stocks.module';
 import { PortfolioModule } from './modules/portfolio/portfolio.module';
+import { CryptoModule } from './modules/crypto/crypto.module';
 
 // Config
 import { getMongoConfig } from './config/database/mongoose.config';
@@ -38,6 +39,7 @@ import { getMongoConfig } from './config/database/mongoose.config';
     GoalsModule,
     StocksModule,
     PortfolioModule,
+    CryptoModule,
   ],
   controllers: [AppController],
   providers: [

@@ -9,6 +9,7 @@ This document provides comprehensive documentation for the FinBud API, covering 
 - [Transactions](#transactions)
 - [Goals](#goals)
 - [Stocks](#stocks)
+- [Crypto](#crypto)
 - [Portfolio](#portfolio)
 - [Error Handling](#error-handling)
 - [Getting Started](#getting-started)
@@ -1395,6 +1396,201 @@ Updates multiple stock data entries for a specific symbol.
 3. **Date Format Issues**
    - Make sure dates are in ISO format (YYYY-MM-DD)
    - The API includes a custom date parser to handle various formats 
+
+## Crypto
+
+The Crypto module provides endpoints for accessing and managing cryptocurrency data.
+
+### Query Cryptocurrency Data
+
+Retrieves historical price data for a specific cryptocurrency within a date range.
+
+**URL**: `/crypto/query`
+
+**Method**: `POST`
+
+**Auth required**: Yes (JWT token)
+
+**Request Body**:
+
+```json
+{
+  "symbol": "BTC",
+  "startDate": "2024-02-01T00:00:00Z",
+  "endDate": "2024-03-01T00:00:00Z"
+}
+```
+
+> Note: If `startDate` is not provided, it defaults to 30 days before the current date. If `endDate` is not provided, it defaults to the current date.
+
+**Success Response**:
+
+- **Code**: 200 OK
+- **Content**: Array of cryptocurrency data entries sorted by date (newest first)
+
+```json
+[
+  {
+    "_id": "65fd839c1faec8a64cbf4a8a",
+    "cryptoName": "Bitcoin",
+    "symbol": "BTC",
+    "open": 51394.78000000,
+    "low": 51082.08000000,
+    "high": 52555.28000000,
+    "close": 52145.26000000,
+    "volume": 25413.12890000,
+    "date": "2024-02-28T00:00:00.000Z",
+    "createdAt": "2024-03-22T12:34:52.112Z",
+    "updatedAt": "2024-03-22T12:34:52.112Z"
+  },
+  {
+    "_id": "65fd839c1faec8a64cbf4a89",
+    "cryptoName": "Bitcoin",
+    "symbol": "BTC",
+    "open": 52036.15000000,
+    "low": 50933.75000000,
+    "high": 52162.80000000,
+    "close": 51258.94000000,
+    "volume": 21485.96320000,
+    "date": "2024-02-27T00:00:00.000Z",
+    "createdAt": "2024-03-22T12:34:52.112Z",
+    "updatedAt": "2024-03-22T12:34:52.112Z"
+  }
+]
+```
+
+**Error Response**:
+
+- **Code**: 404 NOT FOUND
+- **Content**:
+
+```json
+{
+  "statusCode": 404,
+  "message": "No cryptocurrency data found for symbol BTC",
+  "error": "Not Found"
+}
+```
+
+### Get Latest Cryptocurrency Entry
+
+Retrieves the most recent data entry for a specific cryptocurrency or across all cryptocurrencies.
+
+**URL**: `/crypto/latest`
+
+**Method**: `GET`
+
+**Auth required**: Yes (JWT token)
+
+**Query Parameters**: 
+- `symbol=[string]` (optional) the cryptocurrency symbol to retrieve
+
+**Success Response**:
+
+- **Code**: 200 OK
+- **Content**:
+
+```json
+{
+  "_id": "65fd839c1faec8a64cbf4a8a",
+  "cryptoName": "Bitcoin",
+  "symbol": "BTC",
+  "open": 51394.78000000,
+  "low": 51082.08000000,
+  "high": 52555.28000000,
+  "close": 52145.26000000,
+  "volume": 25413.12890000,
+  "date": "2024-02-28T00:00:00.000Z",
+  "createdAt": "2024-03-22T12:34:52.112Z",
+  "updatedAt": "2024-03-22T12:34:52.112Z"
+}
+```
+
+**Error Response**:
+
+- **Code**: 404 NOT FOUND
+- **Content**:
+
+```json
+{
+  "statusCode": 404,
+  "message": "No cryptocurrency data found",
+  "error": "Not Found"
+}
+```
+
+### Update Cryptocurrency Database
+
+Updates the database with new cryptocurrency data from external API responses.
+
+**URL**: `/crypto/update-db`
+
+**Method**: `POST`
+
+**Auth required**: Yes (JWT token)
+
+**Request Body**:
+
+```json
+{
+  "cryptoResponses": [
+    {
+      "Meta Data": {
+        "1. Information": "Daily Prices and Volumes for Digital Currency",
+        "2. Digital Currency Code": "BTC",
+        "3. Digital Currency Name": "Bitcoin",
+        "4. Market Code": "USD",
+        "5. Market Name": "United States Dollar",
+        "6. Last Refreshed": "2024-03-22 00:00:00",
+        "7. Time Zone": "UTC"
+      },
+      "Time Series (Digital Currency Daily)": {
+        "2024-03-22": {
+          "1. open": "52356.78000000",
+          "2. high": "53285.10000000",
+          "3. low": "51987.44000000",
+          "4. close": "52876.29000000",
+          "5. volume": "28754.91230000"
+        },
+        "2024-03-21": {
+          "1. open": "51874.33000000",
+          "2. high": "52456.87000000",
+          "3. low": "51245.22000000",
+          "4. close": "52356.78000000",
+          "5. volume": "24567.34560000"
+        }
+      }
+    }
+  ]
+}
+```
+
+> Note: This endpoint is typically used to process data from cryptocurrency APIs like Alpha Vantage. It checks for new entries that are more recent than what's already in the database and saves them.
+
+**Success Response**:
+
+- **Code**: 200 OK
+- **Content**:
+
+```json
+{
+  "success": true,
+  "count": 2
+}
+```
+
+**Error Response**:
+
+- **Code**: 500 INTERNAL SERVER ERROR
+- **Content**:
+
+```json
+{
+  "statusCode": 500,
+  "message": "Error updating cryptocurrency database",
+  "error": "Internal Server Error"
+}
+```
 
 ## Portfolio
 
