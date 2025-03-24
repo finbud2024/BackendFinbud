@@ -1407,21 +1407,19 @@ Retrieves historical price data for a specific cryptocurrency within a date rang
 
 **URL**: `/crypto/query`
 
-**Method**: `POST`
+**Method**: `GET`
 
 **Auth required**: Yes (JWT token)
 
-**Request Body**:
+**Query Parameters**:
+- `symbol` (required): Cryptocurrency symbol (e.g., BTC, ETH)
+- `startDate` (optional): Start date in ISO format (defaults to 30 days ago)
+- `endDate` (optional): End date in ISO format (defaults to current date)
 
-```json
-{
-  "symbol": "BTC",
-  "startDate": "2024-02-01T00:00:00Z",
-  "endDate": "2024-03-01T00:00:00Z"
-}
+**Example**:
 ```
-
-> Note: If `startDate` is not provided, it defaults to 30 days before the current date. If `endDate` is not provided, it defaults to the current date.
+GET /crypto/query?symbol=BTC&startDate=2024-02-01T00:00:00Z&endDate=2024-03-01T00:00:00Z
+```
 
 **Success Response**:
 
@@ -1516,6 +1514,113 @@ Retrieves the most recent data entry for a specific cryptocurrency or across all
   "statusCode": 404,
   "message": "No cryptocurrency data found",
   "error": "Not Found"
+}
+```
+
+### Create Cryptocurrency Entry
+
+Creates a single cryptocurrency data entry.
+
+**URL**: `/crypto`
+
+**Method**: `POST`
+
+**Auth required**: Yes (JWT token)
+
+**Request Body**:
+
+```json
+{
+  "cryptoName": "Bitcoin",
+  "symbol": "BTC",
+  "open": 52356.78000000,
+  "high": 53285.10000000,
+  "low": 51987.44000000,
+  "close": 52876.29000000,
+  "volume": 28754.91230000,
+  "date": "2024-03-22T00:00:00Z"
+}
+```
+
+**Success Response**:
+
+- **Code**: 201 CREATED
+- **Content**: The created cryptocurrency entry
+
+**Error Response**:
+
+- **Code**: 400 BAD REQUEST
+- **Content**:
+
+```json
+{
+  "statusCode": 400,
+  "message": ["cryptoName must be a string", "symbol must be a string"],
+  "error": "Bad Request"
+}
+```
+
+### Create Multiple Cryptocurrency Entries
+
+Creates multiple cryptocurrency data entries at once.
+
+**URL**: `/crypto/batch`
+
+**Method**: `POST`
+
+**Auth required**: Yes (JWT token)
+
+**Request Body**:
+
+```json
+{
+  "cryptos": [
+    {
+      "cryptoName": "Bitcoin",
+      "symbol": "BTC",
+      "open": 52356.78000000,
+      "high": 53285.10000000,
+      "low": 51987.44000000,
+      "close": 52876.29000000,
+      "volume": 28754.91230000,
+      "date": "2024-03-22T00:00:00Z"
+    },
+    {
+      "cryptoName": "Ethereum",
+      "symbol": "ETH",
+      "open": 3156.45000000,
+      "high": 3198.72000000,
+      "low": 3102.89000000,
+      "close": 3187.50000000,
+      "volume": 12453.67890000,
+      "date": "2024-03-22T00:00:00Z"
+    }
+  ]
+}
+```
+
+**Success Response**:
+
+- **Code**: 201 CREATED
+- **Content**:
+
+```json
+{
+  "success": true,
+  "count": 2
+}
+```
+
+**Error Response**:
+
+- **Code**: 400 BAD REQUEST
+- **Content**:
+
+```json
+{
+  "statusCode": 400,
+  "message": "Invalid cryptocurrency data",
+  "error": "Bad Request"
 }
 ```
 
