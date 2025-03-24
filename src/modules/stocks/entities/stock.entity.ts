@@ -38,5 +38,5 @@ StockSchema.index({ symbol: 1 });
 // Add compound index on symbol and date for efficient queries
 StockSchema.index({ symbol: 1, date: 1 }, { unique: true });
 
-// Add index on date for time-based queries
+// Add index on date for time-based queriesbackend
 StockSchema.index({ date: -1 }); 

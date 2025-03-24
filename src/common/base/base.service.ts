@@ -410,4 +410,228 @@ export class BaseService<T extends Document> {
     
     return result as T;
   }
+
+  /**
+   * Parse geographic coordinates from query parameters
+   * @param latParam Latitude parameter
+   * @param lngParam Longitude parameter
+   * @returns Parsed coordinates or null if invalid
+   */
+  protected parseCoordinates(latParam: any, lngParam: any): [number, number] | null {
+    const lat = this.parseNumericParam(latParam);
+    const lng = this.parseNumericParam(lngParam);
+    
+    if (lat === undefined || lng === undefined) {
+      return null;
+    }
+    
+    // Validate coordinate ranges
+    if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+      this.logger.debug(`Invalid coordinates: [${lat}, ${lng}]`);
+      return null;
+    }
+    
+    return [lat, lng];
+  }
+
+  /**
+   * Create a paginated response with standardized format
+   * @param data Array of data items
+   * @param total Total count of items
+   * @param page Current page number
+   * @param limit Items per page
+   * @returns Formatted paginated response
+   */
+  protected formatPaginatedResponse<D>(
+    data: D[],
+    total: number,
+    page: number = 1,
+    limit: number = 10
+  ): {
+    data: D[];
+    pagination: {
+      total: number;
+      page: number;
+      limit: number;
+      pages: number;
+    };
+  } {
+    const pages = Math.ceil(total / limit) || 1;
+    
+    return {
+      data,
+      pagination: {
+        total,
+        page,
+        limit,
+        pages
+      }
+    };
+  }
+
+  /**
+   * Format a standardized API response
+   * @param data Response data
+   * @param message Optional message
+   * @returns Formatted API response
+   */
+  protected formatApiResponse<D>(
+    data: D,
+    message?: string
+  ): {
+    success: boolean;
+    data: D;
+    message?: string;
+  } {
+    return {
+      success: true,
+      data,
+      ...(message && { message })
+    };
+  }
+
+  /**
+   * Format an error response
+   * @param message Error message
+   * @param error Optional error details
+   * @returns Formatted error response
+   */
+  protected formatErrorResponse(
+    message: string,
+    error?: any
+  ): {
+    success: boolean;
+    message: string;
+    error?: any;
+  } {
+    return {
+      success: false,
+      message,
+      ...(error && { error })
+    };
+  }
+
+  /**
+   * Process pagination parameters from query
+   * @param queryParams Raw query parameters
+   * @param defaultLimit Default items per page
+   * @returns Processed pagination parameters
+   */
+  protected processPaginationParams(
+    queryParams: any,
+    defaultLimit: number = 10
+  ): {
+    page: number;
+    limit: number;
+    skip: number;
+  } {
+    const page = Math.max(1, this.parseNumericParam(queryParams.page, 1) || 1);
+    const limit = this.parseNumericParam(queryParams.limit, defaultLimit) || defaultLimit;
+    const skip = (page - 1) * limit;
+    
+    return { page, limit, skip };
+  }
+
+  /**
+   * Find entities with pagination
+   * @param filter Filter criteria
+   * @param paginationParams Pagination parameters
+   * @param options Query options
+   * @returns Paginated results
+   */
+  async findWithPagination(
+    filter: FilterQuery<T> = {},
+    paginationParams: { page: number; limit: number; skip: number },
+    options: QueryOptions = {}
+  ): Promise<{
+    data: T[];
+    pagination: {
+      total: number;
+      page: number;
+      limit: number;
+      pages: number;
+    };
+  }> {
+    const { page, limit, skip } = paginationParams;
+    
+    this.logger.debug(`Finding ${this.entityName}s with pagination (page ${page}, limit ${limit})`);
+    
+    const [data, total] = await Promise.all([
+      this.repository.findAll(
+        filter,
+        { ...options, skip, limit }
+      ),
+      this.repository.count(filter)
+    ]);
+    
+    return this.formatPaginatedResponse(data, total, page, limit);
+  }
+
+  /**
+   * Process an API query with pagination and standard formatting
+   * @param queryParams Raw query parameters
+   * @param buildFilterFn Function to build filter from processed params
+   * @param options Additional query options
+   * @returns Formatted paginated API response
+   */
+  protected async processApiQuery<P = any>(
+    queryParams: any,
+    buildFilterFn: (processedParams: P) => FilterQuery<T>,
+    options: {
+      paramConfig?: Parameters<typeof this.processQueryParams>[1];
+      defaultLimit?: number;
+      sortField?: string;
+      sortDirection?: 'asc' | 'desc';
+    } = {}
+  ): Promise<{
+    success: boolean;
+    data: {
+      data: T[];
+      pagination: {
+        total: number;
+        page: number;
+        limit: number;
+        pages: number;
+      };
+    };
+  }> {
+    try {
+      // Process parameters
+      const processedParams = this.processQueryParams<P>(
+        queryParams,
+        options.paramConfig || {}
+      );
+      
+      // Process pagination parameters
+      const paginationParams = this.processPaginationParams(
+        queryParams,
+        options.defaultLimit
+      );
+      
+      // Build filter criteria
+      const filter = buildFilterFn(processedParams);
+      
+      // Build query options
+      const queryOptions: QueryOptions = {};
+      
+      // Add sorting if specified
+      if (options.sortField) {
+        const sortDirection = options.sortDirection === 'desc' ? -1 : 1;
+        queryOptions.sort = { [options.sortField]: sortDirection };
+      }
+      
+      // Execute query with pagination
+      const result = await this.findWithPagination(
+        filter,
+        paginationParams,
+        queryOptions
+      );
+      
+      // Return formatted response
+      return this.formatApiResponse(result);
+    } catch (error) {
+      this.logger.error(`Error processing API query: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
 } 

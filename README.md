@@ -13,6 +13,7 @@ This document provides comprehensive documentation for the FinBud API, covering 
 - [Portfolio](#portfolio)
 - [Error Handling](#error-handling)
 - [Getting Started](#getting-started)
+- [Events Module](#events-module)
 
 ## Base URL
 
@@ -2224,3 +2225,333 @@ To test the portfolio functionality end-to-end, follow these steps:
     ```
     GET /api/portfolios/me/history?startDate=2023-01-01T00:00:00.000Z&endDate=2023-12-31T23:59:59.999Z
     ``` 
+
+## Events Module
+
+The events module provides endpoints for managing financial events and conferences.
+
+### Endpoints
+
+#### GET /events
+Get a list of events with optional filtering and pagination.
+
+Query Parameters:
+- `page`: Page number (default: 1)
+- `limit`: Number of items per page (default: 10)
+- `name`: Filter by event name
+- `host`: Filter by event host
+- `location`: Filter by event location
+- `sortBy`: Field to sort by (default: date)
+- `sortDirection`: Sort direction (asc/desc, default: asc)
+
+Response:
+```json
+{
+  "success": true,
+  "data": {
+    "data": [
+      {
+        "_id": "60d21b4967d0d8992e610c85",
+        "name": "Fintech Summit 2023",
+        "date": "2023-09-15T08:00:00.000Z",
+        "host": "Global Finance",
+        "location": "New York City",
+        "price": "Free",
+        "url": "https://example.com/fintech-summit",
+        "image": "https://example.com/images/fintech-summit.jpg",
+        "lat": 40.7128,
+        "lng": -74.006
+      }
+    ],
+    "pagination": {
+      "total": 1,
+      "page": 1,
+      "limit": 10,
+      "pages": 1
+    }
+  }
+}
+```
+
+#### GET /events/map
+Get events with valid coordinates for map display.
+
+Response:
+```json
+{
+  "data": [
+    {
+      "_id": "60d21b4967d0d8992e610c85",
+      "name": "Fintech Summit 2023",
+      "date": "2023-09-15T08:00:00.000Z",
+      "host": "Global Finance",
+      "location": "New York City",
+      "price": "Free",
+      "url": "https://example.com/fintech-summit",
+      "image": "https://example.com/images/fintech-summit.jpg",
+      "lat": 40.7128,
+      "lng": -74.006
+    }
+  ]
+}
+```
+
+#### GET /events/upcoming
+Get upcoming events.
+
+Query Parameters:
+- `limit`: Maximum number of events to return (default: 10)
+
+Response:
+```json
+{
+  "data": [
+    {
+      "_id": "60d21b4967d0d8992e610c85",
+      "name": "Fintech Summit 2023",
+      "date": "2023-09-15T08:00:00.000Z",
+      "host": "Global Finance",
+      "location": "New York City",
+      "price": "Free",
+      "url": "https://example.com/fintech-summit",
+      "image": "https://example.com/images/fintech-summit.jpg",
+      "lat": 40.7128,
+      "lng": -74.006
+    }
+  ],
+  "count": 1
+}
+```
+
+#### GET /events/calendar
+Get events for a specific month and year.
+
+Query Parameters:
+- `month`: Month number (1-12)
+- `year`: Year (e.g., 2023)
+
+Response:
+```json
+{
+  "data": [
+    {
+      "_id": "60d21b4967d0d8992e610c85",
+      "name": "Fintech Summit 2023",
+      "date": "2023-09-15T08:00:00.000Z",
+      "host": "Global Finance",
+      "location": "New York City",
+      "price": "Free",
+      "url": "https://example.com/fintech-summit",
+      "image": "https://example.com/images/fintech-summit.jpg",
+      "lat": 40.7128,
+      "lng": -74.006
+    }
+  ]
+}
+```
+
+#### GET /events/nearby
+Get events near a specific location.
+
+Query Parameters:
+- `lat`: Latitude
+- `lng`: Longitude
+- `radius`: Search radius in kilometers (default: 10)
+
+Response:
+```json
+{
+  "data": [
+    {
+      "_id": "60d21b4967d0d8992e610c85",
+      "name": "Fintech Summit 2023",
+      "date": "2023-09-15T08:00:00.000Z",
+      "host": "Global Finance",
+      "location": "New York City",
+      "price": "Free",
+      "url": "https://example.com/fintech-summit",
+      "image": "https://example.com/images/fintech-summit.jpg",
+      "lat": 40.7128,
+      "lng": -74.006
+    }
+  ],
+  "count": 1
+}
+```
+
+#### GET /events/:id
+Get a single event by ID.
+
+Response:
+```json
+{
+  "_id": "60d21b4967d0d8992e610c85",
+  "name": "Fintech Summit 2023",
+  "date": "2023-09-15T08:00:00.000Z",
+  "host": "Global Finance",
+  "location": "New York City",
+  "price": "Free",
+  "url": "https://example.com/fintech-summit",
+  "image": "https://example.com/images/fintech-summit.jpg",
+  "lat": 40.7128,
+  "lng": -74.006
+}
+```
+
+#### POST /events
+Create a new event.
+
+Request Body:
+```json
+{
+  "name": "Fintech Summit 2023",
+  "date": "2023-09-15T08:00:00.000Z",
+  "host": "Global Finance",
+  "location": "New York City",
+  "price": "Free",
+  "url": "https://example.com/fintech-summit",
+  "image": "https://example.com/images/fintech-summit.jpg",
+  "lat": 40.7128,
+  "lng": -74.006
+}
+```
+
+Response:
+```json
+{
+  "_id": "60d21b4967d0d8992e610c85",
+  "name": "Fintech Summit 2023",
+  "date": "2023-09-15T08:00:00.000Z",
+  "host": "Global Finance",
+  "location": "New York City",
+  "price": "Free",
+  "url": "https://example.com/fintech-summit",
+  "image": "https://example.com/images/fintech-summit.jpg",
+  "lat": 40.7128,
+  "lng": -74.006
+}
+```
+
+#### POST /events/batch
+Create multiple events at once.
+
+Request Body:
+```json
+{
+  "events": [
+    {
+      "name": "Fintech Summit 2023",
+      "date": "2023-09-15T08:00:00.000Z",
+      "host": "Global Finance",
+      "location": "New York City",
+      "price": "Free",
+      "url": "https://example.com/fintech-summit",
+      "image": "https://example.com/images/fintech-summit.jpg",
+      "lat": 40.7128,
+      "lng": -74.006
+    }
+  ]
+}
+```
+
+Response:
+```json
+{
+  "success": true,
+  "created": 1,
+  "skipped": 0,
+  "failed": 0
+}
+```
+
+#### POST /events/scrape
+Manually trigger the event scraper.
+
+Response:
+```json
+{
+  "success": true,
+  "stats": {
+    "total": 10,
+    "created": 8,
+    "skipped": 2,
+    "failed": 0
+  }
+}
+```
+
+#### PUT /events/:id
+Update an existing event.
+
+Request Body:
+```json
+{
+  "name": "Updated Fintech Summit 2023",
+  "price": "Paid"
+}
+```
+
+Response:
+```json
+{
+  "_id": "60d21b4967d0d8992e610c85",
+  "name": "Updated Fintech Summit 2023",
+  "date": "2023-09-15T08:00:00.000Z",
+  "host": "Global Finance",
+  "location": "New York City",
+  "price": "Paid",
+  "url": "https://example.com/fintech-summit",
+  "image": "https://example.com/images/fintech-summit.jpg",
+  "lat": 40.7128,
+  "lng": -74.006
+}
+```
+
+#### DELETE /events/:id
+Delete an event.
+
+Response:
+```json
+{
+  "deleted": true
+}
+```
+
+### Event Scraping
+
+The application includes a scraper service that automatically collects financial events from various sources:
+
+- **Bloomberg Events**: Financial conferences, summits, and other events hosted by Bloomberg
+- **10Times**: A platform that aggregates business and finance conferences
+- **Yahoo Finance**: Financial events and shareholder meetings
+
+#### Automatic Scraping
+
+Events are automatically scraped daily at midnight using a scheduled cron job. No manual intervention is required.
+
+#### Manual Scraping
+
+You can also trigger the scraper manually via the API:
+
+```http
+POST /events/scrape
+```
+
+Response:
+```json
+{
+  "success": true,
+  "stats": {
+    "total": 10,
+    "created": 8,
+    "skipped": 2,
+    "failed": 0
+  }
+}
+```
+
+The response includes statistics on how many events were processed:
+- `total`: Total number of events scraped
+- `created`: Number of new events successfully added to the database
+- `skipped`: Number of duplicate events (already in the database)
+- `failed`: Number of events that couldn't be added due to validation or other errors 

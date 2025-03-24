@@ -40,7 +40,21 @@ export enum ErrorCode {
   CRYPTO_INVALID_DATA = 'CRYPTO_INVALID_DATA',
   CRYPTO_SYMBOL_REQUIRED = 'CRYPTO_SYMBOL_REQUIRED',
   CRYPTO_DATE_REQUIRED = 'CRYPTO_DATE_REQUIRED',
-  CRYPTO_API_ERROR = 'CRYPTO_API_ERROR'
+  CRYPTO_API_ERROR = 'CRYPTO_API_ERROR',
+  
+  // Event errors
+  EVENT_NOT_FOUND = 'EVENT_NOT_FOUND',
+  EVENT_CREATE_FAILED = 'EVENT_CREATE_FAILED',
+  EVENT_UPDATE_FAILED = 'EVENT_UPDATE_FAILED',
+  EVENT_DELETE_FAILED = 'EVENT_DELETE_FAILED',
+  EVENT_DUPLICATE_ENTRY = 'EVENT_DUPLICATE_ENTRY',
+  EVENT_INVALID_DATA = 'EVENT_INVALID_DATA',
+  EVENT_NAME_REQUIRED = 'EVENT_NAME_REQUIRED',
+  EVENT_URL_REQUIRED = 'EVENT_URL_REQUIRED',
+  EVENT_LOCATION_INVALID = 'EVENT_LOCATION_INVALID',
+  EVENT_DATE_INVALID = 'EVENT_DATE_INVALID',
+  EVENT_SCRAPER_ERROR = 'EVENT_SCRAPER_ERROR',
+  EVENT_VALIDATION_ERROR = 'EVENT_VALIDATION_ERROR'
 }
 
 export class AppException extends HttpException {
@@ -208,6 +222,91 @@ export class ExceptionFactory {
       `Cryptocurrency API error: ${message}`, 
       HttpStatus.INTERNAL_SERVER_ERROR, 
       ErrorCode.CRYPTO_API_ERROR, 
+      details
+    );
+  }
+
+  // Event exceptions
+  static eventNotFound(id?: string): AppException {
+    const message = id 
+      ? `Event with ID ${id} not found` 
+      : 'Event not found';
+    return new AppException(message, HttpStatus.NOT_FOUND, ErrorCode.EVENT_NOT_FOUND);
+  }
+  
+  static eventCreateFailed(message = 'Failed to create event'): AppException {
+    return new AppException(message, HttpStatus.BAD_REQUEST, ErrorCode.EVENT_CREATE_FAILED);
+  }
+  
+  static eventUpdateFailed(id: string, message = 'Failed to update event'): AppException {
+    return new AppException(`Failed to update event with ID ${id}: ${message}`, HttpStatus.BAD_REQUEST, ErrorCode.EVENT_UPDATE_FAILED);
+  }
+  
+  static eventDeleteFailed(id: string, message = 'Failed to delete event'): AppException {
+    return new AppException(`Failed to delete event with ID ${id}: ${message}`, HttpStatus.BAD_REQUEST, ErrorCode.EVENT_DELETE_FAILED);
+  }
+  
+  static eventDuplicateEntry(url: string): AppException {
+    return new AppException(
+      `Duplicate event with URL: ${url}`, 
+      HttpStatus.CONFLICT, 
+      ErrorCode.EVENT_DUPLICATE_ENTRY
+    );
+  }
+  
+  static eventInvalidData(field?: string): AppException {
+    const message = field 
+      ? `Invalid event data: ${field}` 
+      : 'Invalid event data';
+    return new AppException(message, HttpStatus.BAD_REQUEST, ErrorCode.EVENT_INVALID_DATA);
+  }
+  
+  static eventNameRequired(): AppException {
+    return new AppException(
+      'Event name is required', 
+      HttpStatus.BAD_REQUEST, 
+      ErrorCode.EVENT_NAME_REQUIRED
+    );
+  }
+  
+  static eventUrlRequired(): AppException {
+    return new AppException(
+      'Event URL is required', 
+      HttpStatus.BAD_REQUEST, 
+      ErrorCode.EVENT_URL_REQUIRED
+    );
+  }
+  
+  static eventLocationInvalid(details: any): AppException {
+    return new AppException(
+      `Invalid event location: ${details.message || ''}`,
+      HttpStatus.BAD_REQUEST,
+      ErrorCode.EVENT_LOCATION_INVALID,
+      details
+    );
+  }
+  
+  static eventDateInvalid(dateString: string): AppException {
+    return new AppException(
+      `Invalid event date format: ${dateString}`,
+      HttpStatus.BAD_REQUEST,
+      ErrorCode.EVENT_DATE_INVALID
+    );
+  }
+  
+  static eventValidationError(message: string): AppException {
+    return new AppException(
+      message,
+      HttpStatus.BAD_REQUEST,
+      ErrorCode.EVENT_VALIDATION_ERROR,
+    );
+  }
+  
+  static eventScraperError(message: string, details?: any): AppException {
+    return new AppException(
+      `Event scraper error: ${message}`,
+      HttpStatus.INTERNAL_SERVER_ERROR,
+      ErrorCode.EVENT_SCRAPER_ERROR,
       details
     );
   }
