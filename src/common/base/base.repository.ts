@@ -36,33 +36,33 @@ export class BaseRepository<T extends Document> {
   /**
    * Find an entity by ID
    */
-  async findById(id: string): Promise<T | null> {
+  async findById(id: string): Promise<any> {
     this.logger.debug(`Finding ${this.entityName} by ID: ${id}`);
-    return this.model.findById(id).exec();
+    return this.model.findById(id).lean().exec();
   }
 
   /**
    * Find a single entity by filter
    */
-  async findOne(filter: FilterQuery<T>, options?: QueryOptions): Promise<T | null> {
+  async findOne(filter: FilterQuery<T>, options?: QueryOptions): Promise<any> {
     this.logger.debug(`Finding one ${this.entityName} by filter`);
-    return this.model.findOne(filter, {}, options).exec();
+    return this.model.findOne(filter, {}, options).lean().exec();
   }
 
   /**
    * Find all entities matching a filter
    */
-  async findAll(filter: FilterQuery<T> = {}, options?: QueryOptions): Promise<T[]> {
+  async findAll(filter: FilterQuery<T> = {}, options?: QueryOptions): Promise<any[]> {
     this.logger.debug(`Finding all ${this.entityName}s`);
-    return this.model.find(filter, {}, options).exec();
+    return this.model.find(filter, {}, options).lean().exec();
   }
 
   /**
    * Update an entity by ID
    */
-  async update(id: string, updateDto: UpdateQuery<T>): Promise<T | null> {
+  async update(id: string, updateDto: UpdateQuery<T>): Promise<any> {
     this.logger.debug(`Updating ${this.entityName} with ID: ${id}`);
-    return this.model.findByIdAndUpdate(id, updateDto, { new: true }).exec();
+    return this.model.findByIdAndUpdate(id, updateDto, { new: true }).lean().exec();
   }
 
   /**
@@ -77,9 +77,9 @@ export class BaseRepository<T extends Document> {
   /**
    * Remove an entity by ID
    */
-  async remove(id: string): Promise<T | null> {
+  async remove(id: string): Promise<any> {
     this.logger.debug(`Removing ${this.entityName} with ID: ${id}`);
-    return this.model.findByIdAndDelete(id).exec();
+    return this.model.findByIdAndDelete(id).lean().exec();
   }
 
   /**
@@ -149,9 +149,9 @@ export class BaseRepository<T extends Document> {
   /**
    * Find latest entities
    */
-  async findLatest(limit: number = 5, filter: FilterQuery<T> = {}): Promise<T[]> {
+  async findLatest(limit: number = 5, filter: FilterQuery<T> = {}): Promise<any[]> {
     this.logger.debug(`Finding latest ${limit} ${this.entityName}s`);
-    return this.model.find(filter).sort({ createdAt: -1 }).limit(limit).exec();
+    return this.model.find(filter).sort({ createdAt: -1 }).limit(limit).lean().exec();
   }
 
   /**

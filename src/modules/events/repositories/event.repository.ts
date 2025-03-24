@@ -19,7 +19,7 @@ export class EventRepository extends BaseRepository<EventDocument> {
   /**
    * Find events with filtering and pagination
    */
-  async findWithFilters(query: QueryEventDto): Promise<{ events: Event[], count: number }> {
+  async findWithFilters(query: QueryEventDto): Promise<{ events: any[], count: number }> {
     const { page = 1, limit = 10, name, host, location } = query;
     const skip = (page - 1) * limit;
 
@@ -42,6 +42,7 @@ export class EventRepository extends BaseRepository<EventDocument> {
       .sort({ date: 1 })
       .skip(skip)
       .limit(limit)
+      .lean()
       .exec();
     
     const count = await this.eventModel.countDocuments(filter).exec();
@@ -52,20 +53,21 @@ export class EventRepository extends BaseRepository<EventDocument> {
   /**
    * Find events with valid coordinates
    */
-  async findWithCoordinates(): Promise<Event[]> {
+  async findWithCoordinates(): Promise<any[]> {
     return this.eventModel
       .find({ 
         lat: { $ne: null, $exists: true }, 
         lng: { $ne: null, $exists: true } 
       })
       .sort({ date: 1 })
+      .lean()
       .exec();
   }
 
   /**
    * Find events by month and year
    */
-  async findByMonthYear(month: number, year: number): Promise<Event[]> {
+  async findByMonthYear(month: number, year: number): Promise<any[]> {
     const startDate = new Date(year, month - 1, 1); // Month is 0-indexed in JS Date
     const endDate = new Date(year, month, 0); // Last day of month
     endDate.setHours(23, 59, 59, 999);
@@ -78,13 +80,14 @@ export class EventRepository extends BaseRepository<EventDocument> {
         }
       })
       .sort({ date: 1 })
+      .lean()
       .exec();
   }
 
   /**
    * Find upcoming events after the specified date
    */
-  async findUpcoming(date: Date, limit?: number): Promise<Event[]> {
+  async findUpcoming(date: Date, limit?: number): Promise<any[]> {
     const query = this.eventModel
       .find({ date: { $gte: date } })
       .sort({ date: 1 });
@@ -93,13 +96,13 @@ export class EventRepository extends BaseRepository<EventDocument> {
       query.limit(limit);
     }
     
-    return query.exec();
+    return query.lean().exec();
   }
 
   /**
    * Find events with the same name and date
    */
-  async findByNameAndDate(name: string, date?: string): Promise<Event | null> {
+  async findByNameAndDate(name: string, date?: string): Promise<any> {
     const filter: FilterQuery<EventDocument> = { name };
     
     if (date) {
@@ -115,7 +118,7 @@ export class EventRepository extends BaseRepository<EventDocument> {
       }
     }
     
-    return this.eventModel.findOne(filter).exec();
+    return this.eventModel.findOne(filter).lean().exec();
   }
 
   /**
@@ -173,7 +176,7 @@ export class EventRepository extends BaseRepository<EventDocument> {
   /**
    * Find events for the upcoming days
    */
-  async findUpcomingEvents(limit: number = 10): Promise<Event[]> {
+  async findUpcomingEvents(limit: number = 10): Promise<any[]> {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -181,15 +184,17 @@ export class EventRepository extends BaseRepository<EventDocument> {
       .find({ date: { $gte: today } })
       .sort({ date: 1 })
       .limit(limit)
+      .lean()
       .exec();
   }
 
   /**
    * Find by ID and update
    */
-  async findByIdAndUpdate(id: string, updateData: any): Promise<Event | null> {
+  async findByIdAndUpdate(id: string, updateData: any): Promise<any> {
     return this.eventModel
       .findByIdAndUpdate(id, updateData, { new: true })
+      .lean()
       .exec();
   }
 

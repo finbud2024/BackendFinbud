@@ -23,52 +23,117 @@ export class EventsService extends BaseService<EventDocument> {
   }
 
   /**
-   * Find a single event by ID
+   * Get a single event by ID
+   * @param id Event ID
+   * @param formatDates Whether to format dates in the response
+   * @returns The event
    */
-  async getEventById(id: string): Promise<Event> {
+  async getEventById(id: string, formatDates: boolean = false): Promise<any> {
     const event = await this.eventRepository.findById(id);
     if (!event) {
       throw ExceptionFactory.eventNotFound(id);
     }
-    return event;
+    
+    return formatDates ? this.addFormattedDates(event) : event;
   }
 
   /**
-   * Find events with valid coordinates for map display
+   * Get events with valid coordinates for map display
+   * @param formatDates Whether to format dates in the response
+   * @returns Events with valid coordinates
    */
-  async findMapEvents(): Promise<Event[]> {
-    return this.eventRepository.findWithCoordinates();
+  async getMapEvents(formatDates: boolean = false): Promise<any> {
+    const events = await this.eventRepository.findWithCoordinates();
+    return formatDates ? this.addFormattedDates(events) : events;
   }
 
   /**
-   * Find upcoming events
+   * Get upcoming events
+   * @param limit Maximum number of events to return
+   * @param formatDates Whether to format dates in the response
+   * @returns Array of upcoming events
    */
-  async findUpcomingEvents(limit?: number): Promise<Event[]> {
-    const today = new Date();
-    return this.eventRepository.findUpcoming(today, limit);
+  async getUpcomingEvents(limit: number = 10, formatDates: boolean = false): Promise<any> {
+    try {
+      const events = await this.eventRepository.findUpcomingEvents();
+      const limitedEvents = events.slice(0, limit);
+      return formatDates ? this.addFormattedDates(limitedEvents) : limitedEvents;
+    } catch (error) {
+      this.logger.error(`Error retrieving upcoming events: ${error.message}`, error.stack);
+      throw ExceptionFactory.eventNotFound('upcoming');
+    }
   }
 
   /**
-   * Find events for a specific month and year
+   * Get events for calendar display
+   * @param year Year (defaults to current year)
+   * @param month Month (1-12, defaults to current month)
+   * @param formatDates Whether to format dates in the response
+   * @returns Events for the specified month
    */
-  async findCalendarEvents(month: number, year: number): Promise<Event[]> {
-    return this.eventRepository.findByMonthYear(month, year);
+  async getEventsForCalendar(year?: number, month?: number, formatDates: boolean = false): Promise<any> {
+    try {
+      const now = new Date();
+      
+      // Default to current year/month if not provided
+      const targetYear = year || now.getFullYear();
+      const targetMonth = month || (now.getMonth() + 1);
+      
+      const events = await this.eventRepository.findByMonthYear(targetMonth, targetYear);
+      return formatDates ? this.addFormattedDates(events) : events;
+    } catch (error) {
+      this.logger.error(`Error retrieving calendar events: ${error.message}`, error.stack);
+      throw ExceptionFactory.eventNotFound('calendar');
+    }
   }
 
   /**
-   * Find events near a location
+   * Get events near a specific location
+   * @param lat Latitude
+   * @param lng Longitude
+   * @param radius Search radius in kilometers
+   * @param formatDates Whether to format dates in the response
+   * @returns Events near the location
    */
-  async findNearbyEvents(lat: number, lng: number, radiusKm: number = 10): Promise<Event[]> {
-    return this.eventRepository.findNearby(lat, lng, radiusKm);
+  async getEventsNearLocation(
+    lat: number, 
+    lng: number, 
+    radius: number = 10, 
+    formatDates: boolean = false
+  ): Promise<any> {
+    try {
+      // Validate coordinates
+      if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+        throw ExceptionFactory.eventLocationInvalid({
+          message: 'Invalid coordinates provided',
+          lat,
+          lng
+        });
+      }
+
+      const events = await this.eventRepository.findNearby(lat, lng, radius);
+      return formatDates ? this.addFormattedDates(events) : events;
+    } catch (error) {
+      if (error instanceof AppException) {
+        throw error;
+      }
+      
+      this.logger.error(`Error retrieving events by location: ${error.message}`, error.stack);
+      throw ExceptionFactory.eventNotFound('nearby');
+    }
   }
 
   /**
    * Create a new event
+   * @param createEventDto Event data
+   * @param formatDates Whether to format dates in the response
+   * @returns The created event
    */
-  async createEvent(createEventDto: CreateEventDto): Promise<Event> {
+  async createEvent(createEventDto: CreateEventDto, formatDates: boolean = false): Promise<any> {
     try {
       this.logger.log(`Creating new event: ${createEventDto.name}`);
-      return await this.eventRepository.create(createEventDto);
+      const event = await this.eventRepository.create(createEventDto);
+      return formatDates ? this.addFormattedDates(event) : event;
     } catch (error) {
       this.logger.error(`Failed to create event: ${error.message}`, error.stack);
       throw ExceptionFactory.eventValidationError(`Failed to create event: ${error.message}`);
@@ -112,8 +177,12 @@ export class EventsService extends BaseService<EventDocument> {
 
   /**
    * Update an existing event
+   * @param id Event ID
+   * @param updateEventDto Update data
+   * @param formatDates Whether to format dates in the response
+   * @returns The updated event
    */
-  async updateEvent(id: string, updateEventDto: UpdateEventDto): Promise<Event> {
+  async updateEvent(id: string, updateEventDto: UpdateEventDto, formatDates: boolean = false): Promise<any> {
     const event = await this.getEventById(id);
     
     try {
@@ -141,7 +210,8 @@ export class EventsService extends BaseService<EventDocument> {
       if (!updated) {
         throw ExceptionFactory.eventNotFound(id);
       }
-      return updated;
+      
+      return formatDates ? this.addFormattedDates(updated) : updated;
     } catch (error) {
       this.logger.error(`Failed to update event ${id}: ${error.message}`, error.stack);
       throw ExceptionFactory.eventValidationError(`Failed to update event: ${error.message}`);
@@ -167,12 +237,13 @@ export class EventsService extends BaseService<EventDocument> {
   /**
    * Process query request with filtering, pagination, and standardized response
    * @param queryParams Raw query parameters
+   * @param formatDates Whether to format dates in the response
    * @returns Formatted paginated response
    */
-  async processEventQuery(queryParams: any): Promise<{
+  async processEventQuery(queryParams: any, formatDates: boolean = false): Promise<{
     success: boolean;
     data: {
-      data: Event[];
+      data: any[];
       pagination: {
         total: number;
         page: number;
@@ -186,31 +257,41 @@ export class EventsService extends BaseService<EventDocument> {
     const sortField = queryParams.sortBy || 'date';
     const sortDirection = queryParams.sortDirection || 'asc';
 
-    return this.processApiQuery(
+    // Add lean option to options object if supported by the repository
+    const queryOptions = {
+      defaultLimit: 20,
+      sortField,
+      sortDirection,
+      paramConfig: {
+        stringParams: ['name', 'host', 'location', 'sortBy', 'sortDirection'],
+        dateRanges: [
+          {
+            startParam: 'startDate',
+            endParam: 'endDate',
+            resultKey: 'dateRange',
+            defaultDaysBack: 90 // Default to 90 days of events
+          }
+        ],
+        numericParams: [
+          { name: 'lat' },
+          { name: 'lng' },
+          { name: 'radius', defaultValue: 10000 }
+        ]
+      }
+    };
+
+    const response = await this.processApiQuery(
       queryParams,
       (params: any) => this.buildEventFilter(params),
-      {
-        paramConfig: {
-          stringParams: ['name', 'host', 'location', 'sortBy', 'sortDirection'],
-          dateRanges: [
-            {
-              startParam: 'startDate',
-              endParam: 'endDate',
-              resultKey: 'dateRange',
-              defaultDaysBack: 90 // Default to 90 days of events
-            }
-          ],
-          numericParams: [
-            { name: 'lat' },
-            { name: 'lng' },
-            { name: 'radius', defaultValue: 10000 }
-          ]
-        },
-        defaultLimit: 20,
-        sortField,
-        sortDirection
-      }
+      queryOptions
     );
+    
+    // Format dates if requested
+    if (formatDates && response && response.data && response.data.data) {
+      response.data.data = this.addFormattedDates(response.data.data);
+    }
+    
+    return response;
   }
 
   /**
@@ -256,70 +337,5 @@ export class EventsService extends BaseService<EventDocument> {
     }
 
     return filter;
-  }
-
-  /**
-   * Get upcoming events (events in the future)
-   * @param limit Number of events to return
-   * @returns Upcoming events
-   */
-  async getUpcomingEvents(limit: number = 10): Promise<Event[]> {
-    try {
-      const events = await this.eventRepository.findUpcomingEvents();
-      return events.slice(0, limit);
-    } catch (error) {
-      this.logger.error(`Error retrieving upcoming events: ${error.message}`, error.stack);
-      throw ExceptionFactory.eventNotFound('upcoming');
-    }
-  }
-
-  /**
-   * Get events near a specific location
-   * @param lat Latitude
-   * @param lng Longitude
-   * @param radius Search radius in meters
-   * @returns Events near the location
-   */
-  async getEventsNearLocation(lat: number, lng: number, radius: number = 10000): Promise<Event[]> {
-    try {
-      // Validate coordinates
-      if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
-        throw ExceptionFactory.eventLocationInvalid({
-          message: 'Invalid coordinates provided',
-          lat,
-          lng
-        });
-      }
-
-      return await this.eventRepository.findNearby(lat, lng, radius / 1000); // Convert to km
-    } catch (error) {
-      if (error instanceof AppException) {
-        throw error;
-      }
-      
-      this.logger.error(`Error retrieving events by location: ${error.message}`, error.stack);
-      throw ExceptionFactory.eventNotFound('nearby');
-    }
-  }
-
-  /**
-   * Get events for calendar display
-   * @param year Year (defaults to current year)
-   * @param month Month (1-12, defaults to current month)
-   * @returns Events for the specified month
-   */
-  async getEventsForCalendar(year?: number, month?: number): Promise<Event[]> {
-    try {
-      const now = new Date();
-      
-      // Default to current year/month if not provided
-      const targetYear = year || now.getFullYear();
-      const targetMonth = month || (now.getMonth() + 1);
-      
-      return await this.eventRepository.findByMonthYear(targetMonth, targetYear);
-    } catch (error) {
-      this.logger.error(`Error retrieving calendar events: ${error.message}`, error.stack);
-      throw ExceptionFactory.eventNotFound('calendar');
-    }
   }
 } 

@@ -4,6 +4,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { ScraperService } from './services/scraper.service';
+import { AdminGuard } from 'src/common/guards/admin.guard';
 
 @Controller('events')
 @UseGuards(JwtAuthGuard)
@@ -18,7 +19,7 @@ export class EventsController {
    */
   @Get()
   async findAll(@Query() queryParams: any) {
-    return this.eventsService.processEventQuery(queryParams);
+    return this.eventsService.processEventQuery(queryParams, true);
   }
 
   /**
@@ -26,7 +27,8 @@ export class EventsController {
    */
   @Get('map')
   async getMapEvents() {
-    return this.eventsService.findMapEvents();
+    const events = await this.eventsService.getMapEvents(true);
+    return { data: events };
   }
 
   /**
@@ -35,7 +37,11 @@ export class EventsController {
   @Get('upcoming')
   async getUpcomingEvents(@Query('limit') limitParam?: string) {
     const limit = limitParam ? parseInt(limitParam, 10) : 10;
-    return this.eventsService.getUpcomingEvents(limit);
+    const events = await this.eventsService.getUpcomingEvents(limit, true);
+    return { 
+      data: events,
+      count: events.length
+    };
   }
 
   /**
@@ -48,7 +54,8 @@ export class EventsController {
   ) {
     const year = yearParam ? parseInt(yearParam, 10) : undefined;
     const month = monthParam ? parseInt(monthParam, 10) : undefined;
-    return this.eventsService.getEventsForCalendar(year, month);
+    const events = await this.eventsService.getEventsForCalendar(year, month, true);
+    return { data: events };
   }
 
   /**
@@ -62,8 +69,13 @@ export class EventsController {
   ) {
     const lat = parseFloat(latParam);
     const lng = parseFloat(lngParam);
-    const radius = radiusParam ? parseInt(radiusParam, 10) : 10000;
-    return this.eventsService.getEventsNearLocation(lat, lng, radius);
+    const radius = radiusParam ? parseFloat(radiusParam) : 10; // Default 10 km radius
+    
+    const events = await this.eventsService.getEventsNearLocation(lat, lng, radius, true);
+    return { 
+      data: events,
+      count: events.length
+    };
   }
 
   /**
@@ -71,22 +83,24 @@ export class EventsController {
    */
   @Get(':id')
   async findOne(@Param('id') id: string) {
-    return this.eventsService.getEventById(id);
+    return this.eventsService.getEventById(id, true);
   }
 
   /**
    * Create a new event
    */
   @Post()
+  @UseGuards(AdminGuard)
   @HttpCode(HttpStatus.CREATED)
   async create(@Body() createEventDto: CreateEventDto) {
-    return this.eventsService.createEvent(createEventDto);
+    return this.eventsService.createEvent(createEventDto, true);
   }
 
   /**
    * Create multiple events at once
    */
   @Post('batch')
+  @UseGuards(AdminGuard)
   @HttpCode(HttpStatus.CREATED)
   async createBatch(@Body() body: { events: CreateEventDto[] }) {
     return this.eventsService.createManyEvents(body.events);
@@ -96,6 +110,7 @@ export class EventsController {
    * Manually trigger the scraper
    */
   @Post('scrape')
+  @UseGuards(AdminGuard)
   @HttpCode(HttpStatus.OK)
   async scrapeEvents() {
     return await this.scraperService.scrapeEvents();
@@ -105,15 +120,17 @@ export class EventsController {
    * Update an existing event
    */
   @Put(':id')
+  @UseGuards(AdminGuard)
   async update(@Param('id') id: string, @Body() updateEventDto: UpdateEventDto) {
-    return this.eventsService.updateEvent(id, updateEventDto);
+    return this.eventsService.updateEvent(id, updateEventDto, true);
   }
 
   /**
    * Delete an event
    */
   @Delete(':id')
+  @UseGuards(AdminGuard)
   async remove(@Param('id') id: string) {
-    return this.eventsService.deleteEvent(id);
+    return await this.eventsService.deleteEvent(id);
   }
 } 

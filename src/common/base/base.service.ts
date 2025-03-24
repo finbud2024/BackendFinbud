@@ -634,4 +634,90 @@ export class BaseService<T extends Document> {
       throw error;
     }
   }
+
+  /**
+   * Format a date into user-friendly strings
+   * @param date The date to format (Date object or ISO string)
+   * @returns Object with different formatted date strings
+   */
+  protected formatDate(date: Date | string | null | undefined): {
+    formattedDate: string | null;
+    formattedTime: string | null;
+    displayDate: string | null;
+  } {
+    if (!date) {
+      return {
+        formattedDate: null,
+        formattedTime: null,
+        displayDate: null
+      };
+    }
+
+    const dateObj = date instanceof Date ? date : new Date(date);
+    
+    // Check if the date is valid
+    if (isNaN(dateObj.getTime())) {
+      return {
+        formattedDate: null,
+        formattedTime: null,
+        displayDate: null
+      };
+    }
+
+    const formattedDate = dateObj.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+
+    const formattedTime = dateObj.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+
+    return {
+      formattedDate,
+      formattedTime,
+      displayDate: `${formattedDate} at ${formattedTime}`
+    };
+  }
+
+  /**
+   * Enhance entities with frontend-friendly formatted dates
+   * Applies to any entity with a 'date' field
+   * @param entities Single entity or array of entities
+   * @param dateField The field name containing the date (default: 'date')
+   * @returns Entity or entities with added formatted date fields
+   */
+  protected addFormattedDates<E extends Record<string, any>>(
+    entities: E | E[],
+    dateField: string = 'date'
+  ): any {
+    if (!entities) return entities;
+
+    const formatEntity = (entity: E) => {
+      if (!entity) return null;
+      
+      // Convert Mongoose document to plain object if needed
+      const plainEntity = entity.toJSON ? entity.toJSON() : entity;
+      
+      const dateValue = plainEntity[dateField];
+      if (!dateValue) return plainEntity;
+
+      const { formattedDate, formattedTime, displayDate } = this.formatDate(dateValue);
+      
+      return {
+        ...plainEntity,
+        formattedDate,
+        formattedTime,
+        displayDate
+      };
+    };
+
+    if (Array.isArray(entities)) {
+      return entities.map(formatEntity);
+    }
+    
+    return formatEntity(entities);
+  }
 } 
