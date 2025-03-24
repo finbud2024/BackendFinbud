@@ -1399,232 +1399,21 @@ Updates multiple stock data entries for a specific symbol.
 
 ## Crypto
 
-The Crypto module provides endpoints for accessing and managing cryptocurrency data.
+The Crypto module provides endpoints for managing and accessing cryptocurrency data.
 
-### Query Cryptocurrency Data
+### Design Principles
 
-Retrieves historical price data for a specific cryptocurrency within a date range.
+The Crypto module follows the NestJS architecture with proper separation of concerns:
 
-**URL**: `/crypto/query`
+- **Controllers**: Handle HTTP requests/responses and delegation to the service layer. Controllers are kept minimal with no business logic, response formatting, or validation.
+- **Services**: Contain the business logic, data validation, error handling, and response formatting. Services coordinate between different repositories and external services, and prepare the final responses.
+- **Repositories**: Handle data access operations and database interactions.
 
-**Method**: `GET`
+This separation ensures code maintainability, testability, and a clear flow of data through the application. When a controller receives a request, it immediately delegates to the service layer, which handles all processing and returns a fully formatted response that the controller simply passes back to the client.
 
-**Auth required**: Yes (JWT token)
+### Creating and Managing Cryptocurrency Data
 
-**Query Parameters**:
-- `symbol` (required): Cryptocurrency symbol (e.g., BTC, ETH)
-- `startDate` (optional): Start date in ISO format (defaults to 30 days ago)
-- `endDate` (optional): End date in ISO format (defaults to current date)
-
-**Example**:
-```
-GET /crypto/query?symbol=BTC&startDate=2024-02-01T00:00:00Z&endDate=2024-03-01T00:00:00Z
-```
-
-**Success Response**:
-
-- **Code**: 200 OK
-- **Content**: Array of cryptocurrency data entries sorted by date (newest first)
-
-```json
-[
-  {
-    "_id": "65fd839c1faec8a64cbf4a8a",
-    "cryptoName": "Bitcoin",
-    "symbol": "BTC",
-    "open": 51394.78000000,
-    "low": 51082.08000000,
-    "high": 52555.28000000,
-    "close": 52145.26000000,
-    "volume": 25413.12890000,
-    "date": "2024-02-28T00:00:00.000Z",
-    "createdAt": "2024-03-22T12:34:52.112Z",
-    "updatedAt": "2024-03-22T12:34:52.112Z"
-  },
-  {
-    "_id": "65fd839c1faec8a64cbf4a89",
-    "cryptoName": "Bitcoin",
-    "symbol": "BTC",
-    "open": 52036.15000000,
-    "low": 50933.75000000,
-    "high": 52162.80000000,
-    "close": 51258.94000000,
-    "volume": 21485.96320000,
-    "date": "2024-02-27T00:00:00.000Z",
-    "createdAt": "2024-03-22T12:34:52.112Z",
-    "updatedAt": "2024-03-22T12:34:52.112Z"
-  }
-]
-```
-
-**Error Response**:
-
-- **Code**: 404 NOT FOUND
-- **Content**:
-
-```json
-{
-  "statusCode": 404,
-  "message": "No cryptocurrency data found for symbol BTC",
-  "error": "Not Found"
-}
-```
-
-### Get Latest Cryptocurrency Entry
-
-Retrieves the most recent data entry for a specific cryptocurrency or across all cryptocurrencies.
-
-**URL**: `/crypto/latest`
-
-**Method**: `GET`
-
-**Auth required**: Yes (JWT token)
-
-**Query Parameters**: 
-- `symbol=[string]` (optional) the cryptocurrency symbol to retrieve
-
-**Success Response**:
-
-- **Code**: 200 OK
-- **Content**:
-
-```json
-{
-  "_id": "65fd839c1faec8a64cbf4a8a",
-  "cryptoName": "Bitcoin",
-  "symbol": "BTC",
-  "open": 51394.78000000,
-  "low": 51082.08000000,
-  "high": 52555.28000000,
-  "close": 52145.26000000,
-  "volume": 25413.12890000,
-  "date": "2024-02-28T00:00:00.000Z",
-  "createdAt": "2024-03-22T12:34:52.112Z",
-  "updatedAt": "2024-03-22T12:34:52.112Z"
-}
-```
-
-**Error Response**:
-
-- **Code**: 404 NOT FOUND
-- **Content**:
-
-```json
-{
-  "statusCode": 404,
-  "message": "No cryptocurrency data found",
-  "error": "Not Found"
-}
-```
-
-### Create Cryptocurrency Entry
-
-Creates a single cryptocurrency data entry.
-
-**URL**: `/crypto`
-
-**Method**: `POST`
-
-**Auth required**: Yes (JWT token)
-
-**Request Body**:
-
-```json
-{
-  "cryptoName": "Bitcoin",
-  "symbol": "BTC",
-  "open": 52356.78000000,
-  "high": 53285.10000000,
-  "low": 51987.44000000,
-  "close": 52876.29000000,
-  "volume": 28754.91230000,
-  "date": "2024-03-22T00:00:00Z"
-}
-```
-
-**Success Response**:
-
-- **Code**: 201 CREATED
-- **Content**: The created cryptocurrency entry
-
-**Error Response**:
-
-- **Code**: 400 BAD REQUEST
-- **Content**:
-
-```json
-{
-  "statusCode": 400,
-  "message": ["cryptoName must be a string", "symbol must be a string"],
-  "error": "Bad Request"
-}
-```
-
-### Create Multiple Cryptocurrency Entries
-
-Creates multiple cryptocurrency data entries at once.
-
-**URL**: `/crypto/batch`
-
-**Method**: `POST`
-
-**Auth required**: Yes (JWT token)
-
-**Request Body**:
-
-```json
-{
-  "cryptos": [
-    {
-      "cryptoName": "Bitcoin",
-      "symbol": "BTC",
-      "open": 52356.78000000,
-      "high": 53285.10000000,
-      "low": 51987.44000000,
-      "close": 52876.29000000,
-      "volume": 28754.91230000,
-      "date": "2024-03-22T00:00:00Z"
-    },
-    {
-      "cryptoName": "Ethereum",
-      "symbol": "ETH",
-      "open": 3156.45000000,
-      "high": 3198.72000000,
-      "low": 3102.89000000,
-      "close": 3187.50000000,
-      "volume": 12453.67890000,
-      "date": "2024-03-22T00:00:00Z"
-    }
-  ]
-}
-```
-
-**Success Response**:
-
-- **Code**: 201 CREATED
-- **Content**:
-
-```json
-{
-  "success": true,
-  "count": 2
-}
-```
-
-**Error Response**:
-
-- **Code**: 400 BAD REQUEST
-- **Content**:
-
-```json
-{
-  "statusCode": 400,
-  "message": "Invalid cryptocurrency data",
-  "error": "Bad Request"
-}
-```
-
-### Update Cryptocurrency Database
+#### Update Cryptocurrency Database
 
 Updates the database with new cryptocurrency data from external API responses.
 
@@ -1694,6 +1483,285 @@ Updates the database with new cryptocurrency data from external API responses.
   "statusCode": 500,
   "message": "Error updating cryptocurrency database",
   "error": "Internal Server Error"
+}
+```
+
+#### Create Cryptocurrency Entry
+
+Creates a single cryptocurrency data entry.
+
+**URL**: `/crypto`
+
+**Method**: `POST`
+
+**Auth required**: Yes (JWT token)
+
+**Request Body**:
+
+```json
+{
+  "cryptoName": "Bitcoin",
+  "symbol": "BTC",
+  "open": 52356.78000000,
+  "high": 53285.10000000,
+  "low": 51987.44000000,
+  "close": 52876.29000000,
+  "volume": 28754.91230000,
+  "date": "2024-03-22T00:00:00Z"
+}
+```
+
+**Success Response**:
+
+- **Code**: 201 CREATED
+- **Content**: The created cryptocurrency entry
+
+**Error Response**:
+
+- **Code**: 400 BAD REQUEST
+- **Content**:
+
+```json
+{
+  "statusCode": 400,
+  "message": ["cryptoName must be a string", "symbol must be a string"],
+  "error": "Bad Request"
+}
+```
+
+#### Create Multiple Cryptocurrency Entries
+
+Creates multiple cryptocurrency data entries at once.
+
+**URL**: `/crypto/batch`
+
+**Method**: `POST`
+
+**Auth required**: Yes (JWT token)
+
+**Request Body**:
+
+```json
+{
+  "cryptos": [
+    {
+      "cryptoName": "Bitcoin",
+      "symbol": "BTC",
+      "open": 52356.78000000,
+      "high": 53285.10000000,
+      "low": 51987.44000000,
+      "close": 52876.29000000,
+      "volume": 28754.91230000,
+      "date": "2024-03-22T00:00:00Z"
+    },
+    {
+      "cryptoName": "Ethereum",
+      "symbol": "ETH",
+      "open": 3156.45000000,
+      "high": 3198.72000000,
+      "low": 3102.89000000,
+      "close": 3187.50000000,
+      "volume": 12453.67890000,
+      "date": "2024-03-22T00:00:00Z"
+    }
+  ]
+}
+```
+
+> Note: This endpoint handles duplicate entries gracefully. If you try to insert data for a cryptocurrency with a date that already exists in the database, it will skip that entry rather than failing the entire operation.
+
+**Success Response**:
+
+- **Code**: 201 CREATED
+- **Content**:
+
+```json
+{
+  "success": true,
+  "count": 2,
+  "skipped": 0
+}
+```
+
+If some entries were duplicates and skipped:
+
+```json
+{
+  "success": true,
+  "count": 1,
+  "skipped": 1
+}
+```
+
+**Error Response**:
+
+- **Code**: 400 BAD REQUEST
+- **Content**:
+
+```json
+{
+  "statusCode": 400,
+  "message": "Invalid cryptocurrency data",
+  "error": "Bad Request"
+}
+```
+
+### Querying Cryptocurrency Data
+
+#### Query Cryptocurrency Data
+
+Retrieves historical price data for a specific cryptocurrency within a date range.
+
+**URL**: `/crypto/query`
+
+**Method**: `GET`
+
+**Auth required**: Yes (JWT token)
+
+**Query Parameters**:
+- `symbol` (required): Cryptocurrency symbol (e.g., BTC, ETH)
+- `startDate` (optional): Start date in ISO format (defaults to 30 days ago)
+- `endDate` (optional): End date in ISO format (defaults to current date)
+
+**Example**:
+```
+GET /crypto/query?symbol=BTC&startDate=2024-02-01T00:00:00Z&endDate=2024-03-01T00:00:00Z
+```
+
+**Success Response**:
+
+- **Code**: 200 OK
+- **Content**: An object containing data array, count and an optional message
+
+```json
+{
+  "data": [
+    {
+      "_id": "65fd839c1faec8a64cbf4a8a",
+      "cryptoName": "Bitcoin",
+      "symbol": "BTC",
+      "open": 51394.78000000,
+      "low": 51082.08000000,
+      "high": 52555.28000000,
+      "close": 52145.26000000,
+      "volume": 25413.12890000,
+      "date": "2024-02-28T00:00:00.000Z",
+      "createdAt": "2024-03-22T12:34:52.112Z",
+      "updatedAt": "2024-03-22T12:34:52.112Z"
+    },
+    {
+      "_id": "65fd839c1faec8a64cbf4a89",
+      "cryptoName": "Bitcoin",
+      "symbol": "BTC",
+      "open": 52036.15000000,
+      "low": 50933.75000000,
+      "high": 52162.80000000,
+      "close": 51258.94000000,
+      "volume": 21485.96320000,
+      "date": "2024-02-27T00:00:00.000Z",
+      "createdAt": "2024-03-22T12:34:52.112Z",
+      "updatedAt": "2024-03-22T12:34:52.112Z"
+    }
+  ],
+  "count": 2
+}
+```
+
+If no data is found, it returns an empty array with a message:
+
+```json
+{
+  "data": [],
+  "count": 0,
+  "message": "No data found for BTC in the specified date range"
+}
+```
+
+#### Get Latest Cryptocurrency Entry
+
+Retrieves the most recent data entry for a specific cryptocurrency or across all cryptocurrencies.
+
+**URL**: `/crypto/latest`
+
+**Method**: `GET`
+
+**Auth required**: Yes (JWT token)
+
+**Query Parameters**: 
+- `symbol=[string]` (optional) the cryptocurrency symbol to retrieve
+
+**Success Response**:
+
+- **Code**: 200 OK
+- **Content**:
+
+```json
+{
+  "data": {
+    "_id": "65fd839c1faec8a64cbf4a8a",
+    "cryptoName": "Bitcoin",
+    "symbol": "BTC",
+    "open": 51394.78000000,
+    "low": 51082.08000000,
+    "high": 52555.28000000,
+    "close": 52145.26000000,
+    "volume": 25413.12890000,
+    "date": "2024-02-28T00:00:00.000Z",
+    "createdAt": "2024-03-22T12:34:52.112Z",
+    "updatedAt": "2024-03-22T12:34:52.112Z"
+  }
+}
+```
+
+If no data is found, it returns an object with null data and a message:
+
+```json
+{
+  "data": null,
+  "message": "No latest data found for symbol BTC"
+}
+```
+
+#### Get Available Dates (Debug Endpoint)
+
+Retrieves all available dates for a specific cryptocurrency symbol. Useful for debugging and determining what data exists.
+
+**URL**: `/crypto/available-dates`
+
+**Method**: `GET`
+
+**Auth required**: Yes (JWT token)
+
+**Query Parameters**: 
+- `symbol` (required): Cryptocurrency symbol (e.g., BTC)
+
+**Success Response**:
+
+- **Code**: 200 OK
+- **Content**:
+
+```json
+{
+  "symbol": "BTC",
+  "dates": [
+    "2024-02-01",
+    "2024-02-02",
+    "2024-02-03"
+  ],
+  "count": 3
+}
+```
+
+**Error Response**:
+
+- **Code**: 200 OK with empty result
+- **Content**:
+
+```json
+{
+  "symbol": "XYZ",
+  "dates": [],
+  "count": 0
 }
 ```
 

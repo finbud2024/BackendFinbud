@@ -5,6 +5,7 @@ import { APP_FILTER } from '@nestjs/core';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { GlobalExceptionFilter } from './common/filters/http-exception.filter';
+import { MongoExceptionFilter } from './common/filters/mongo-exception.filter';
 
 // Feature modules
 import { AuthModule } from './modules/auth/auth.module';
@@ -47,6 +48,10 @@ import { getMongoConfig } from './config/database/mongoose.config';
     {
       provide: APP_FILTER,
       useClass: GlobalExceptionFilter,
+    },
+    {
+      provide: APP_FILTER,
+      useClass: MongoExceptionFilter,
     },
   ],
 })

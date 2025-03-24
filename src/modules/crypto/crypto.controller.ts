@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Post, Query, UseGuards, HttpStatus, HttpCode } from '@nestjs/common';
 import { CryptoService } from './crypto.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { QueryCryptoDto } from './dto/query-crypto.dto';
@@ -15,14 +15,23 @@ export class CryptoController {
    * Query cryptocurrency data by symbol and date range
    */
   @Get('query')
-  async queryCryptoData(@Query() queryDto: QueryCryptoDto): Promise<Crypto[]> {
-    return this.cryptoService.findBySymbolAndDateRange(queryDto);
+  async queryCryptoData(@Query() queryDto: QueryCryptoDto) {
+    return this.cryptoService.queryData(queryDto);
+  }
+
+  /**
+   * Get all available dates for a specific symbol (for debugging)
+   */
+  @Get('available-dates')
+  async getAvailableDates(@Query('symbol') symbol: string) {
+    return this.cryptoService.getFormattedAvailableDates(symbol);
   }
 
   /**
    * Create a single cryptocurrency entry
    */
   @Post()
+  @HttpCode(HttpStatus.CREATED)
   async createCrypto(@Body() createDto: CreateCryptoDto): Promise<Crypto> {
     return this.cryptoService.create(createDto);
   }
@@ -31,19 +40,17 @@ export class CryptoController {
    * Create multiple cryptocurrency entries
    */
   @Post('batch')
-  async createManyCryptos(@Body() createDto: { cryptos: CreateCryptoDto[] }): Promise<{ success: boolean; count: number }> {
-    const result = await this.cryptoService.createMany(createDto.cryptos);
-    return {
-      success: true,
-      count: result.length
-    };
+  @HttpCode(HttpStatus.CREATED)
+  async createManyCryptos(@Body() createDto: { cryptos: CreateCryptoDto[] }) {
+    const result = await this.cryptoService.createManyWithDuplicateHandling(createDto.cryptos);
+    return this.cryptoService.formatBatchCreationResponse(result);
   }
 
   /**
    * Update cryptocurrency database with external API data
    */
   @Post('update-db')
-  async updateCryptoDB(@Body() updateDto: UpdateCryptoDbDto): Promise<{ success: boolean; count: number }> {
+  async updateCryptoDB(@Body() updateDto: UpdateCryptoDbDto) {
     return this.cryptoService.updateCryptoDatabase(updateDto.cryptoResponses);
   }
 
@@ -51,7 +58,7 @@ export class CryptoController {
    * Get the latest cryptocurrency entry
    */
   @Get('latest')
-  async getLatestCrypto(@Query('symbol') symbol?: string): Promise<Crypto | null> {
-    return this.cryptoService.getLatestEntry(symbol);
+  async getLatestCrypto(@Query('symbol') symbol?: string) {
+    return this.cryptoService.getFormattedLatestEntry(symbol);
   }
 } 

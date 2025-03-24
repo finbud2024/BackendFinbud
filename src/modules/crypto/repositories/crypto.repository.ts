@@ -24,13 +24,26 @@ export class CryptoRepository extends BaseRepository<CryptoDocument> {
     startDate: Date,
     endDate: Date,
   ): Promise<CryptoDocument[]> {
-    this.logger.debug(`Finding crypto data for symbol: ${symbol} between ${startDate} and ${endDate}`);
+    this.logger.debug(`Finding crypto data for symbol: ${symbol} between ${startDate.toISOString()} and ${endDate.toISOString()}`);
+    
+    // Ensure we're using the beginning and end of the days for inclusive range
+    const startOfDay = new Date(startDate);
+    startOfDay.setUTCHours(0, 0, 0, 0);
+    
+    const endOfDay = new Date(endDate);
+    endOfDay.setUTCHours(23, 59, 59, 999);
+    
+    this.logger.debug(`Adjusted date range: ${startOfDay.toISOString()} to ${endOfDay.toISOString()}`);
+    
+    // First, let's confirm data exists for this symbol
+    const count = await this.model.countDocuments({ symbol }).exec();
+    this.logger.debug(`Total documents for symbol ${symbol}: ${count}`);
     
     return this.findAll({
       symbol,
       date: {
-        $gte: startDate,
-        $lte: endDate,
+        $gte: startOfDay,
+        $lte: endOfDay,
       },
     }, { sort: { date: -1 } });
   }

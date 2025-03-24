@@ -29,7 +29,18 @@ export enum ErrorCode {
   GOAL_UPDATE_FAILED = 'GOAL_UPDATE_FAILED',
   GOAL_DELETE_FAILED = 'GOAL_DELETE_FAILED',
   INVALID_GOAL_DATA = 'INVALID_GOAL_DATA',
-  GOAL_DEADLINE_PAST = 'GOAL_DEADLINE_PAST'
+  GOAL_DEADLINE_PAST = 'GOAL_DEADLINE_PAST',
+  
+  // Crypto errors
+  CRYPTO_NOT_FOUND = 'CRYPTO_NOT_FOUND',
+  CRYPTO_CREATE_FAILED = 'CRYPTO_CREATE_FAILED',
+  CRYPTO_UPDATE_FAILED = 'CRYPTO_UPDATE_FAILED',
+  CRYPTO_DELETE_FAILED = 'CRYPTO_DELETE_FAILED',
+  CRYPTO_DUPLICATE_ENTRY = 'CRYPTO_DUPLICATE_ENTRY',
+  CRYPTO_INVALID_DATA = 'CRYPTO_INVALID_DATA',
+  CRYPTO_SYMBOL_REQUIRED = 'CRYPTO_SYMBOL_REQUIRED',
+  CRYPTO_DATE_REQUIRED = 'CRYPTO_DATE_REQUIRED',
+  CRYPTO_API_ERROR = 'CRYPTO_API_ERROR'
 }
 
 export class AppException extends HttpException {
@@ -142,5 +153,62 @@ export class ExceptionFactory {
   
   static goalDeadlinePast(date: Date): AppException {
     return new AppException(`Goal deadline cannot be in the past: ${date.toISOString()}`, HttpStatus.BAD_REQUEST, ErrorCode.GOAL_DEADLINE_PAST);
+  }
+
+  // Crypto exceptions
+  static cryptoNotFound(symbol?: string): AppException {
+    const message = symbol 
+      ? `No cryptocurrency data found for symbol: ${symbol}` 
+      : 'No cryptocurrency data found';
+    return new AppException(message, HttpStatus.NOT_FOUND, ErrorCode.CRYPTO_NOT_FOUND);
+  }
+  
+  static cryptoCreateFailed(message = 'Failed to create cryptocurrency entry'): AppException {
+    return new AppException(message, HttpStatus.BAD_REQUEST, ErrorCode.CRYPTO_CREATE_FAILED);
+  }
+  
+  static cryptoUpdateFailed(message = 'Failed to update cryptocurrency data'): AppException {
+    return new AppException(message, HttpStatus.BAD_REQUEST, ErrorCode.CRYPTO_UPDATE_FAILED);
+  }
+  
+  static cryptoDuplicateEntry(symbol: string, date: Date): AppException {
+    const dateStr = date instanceof Date ? date.toISOString().split('T')[0] : date;
+    return new AppException(
+      `Duplicate entry for cryptocurrency ${symbol} on ${dateStr}`, 
+      HttpStatus.CONFLICT, 
+      ErrorCode.CRYPTO_DUPLICATE_ENTRY
+    );
+  }
+  
+  static cryptoInvalidData(field?: string): AppException {
+    const message = field 
+      ? `Invalid cryptocurrency data: ${field}` 
+      : 'Invalid cryptocurrency data';
+    return new AppException(message, HttpStatus.BAD_REQUEST, ErrorCode.CRYPTO_INVALID_DATA);
+  }
+  
+  static cryptoSymbolRequired(): AppException {
+    return new AppException(
+      'Cryptocurrency symbol is required', 
+      HttpStatus.BAD_REQUEST, 
+      ErrorCode.CRYPTO_SYMBOL_REQUIRED
+    );
+  }
+  
+  static cryptoDateRequired(): AppException {
+    return new AppException(
+      'Date is required for cryptocurrency data', 
+      HttpStatus.BAD_REQUEST, 
+      ErrorCode.CRYPTO_DATE_REQUIRED
+    );
+  }
+  
+  static cryptoApiError(message: string, details?: any): AppException {
+    return new AppException(
+      `Cryptocurrency API error: ${message}`, 
+      HttpStatus.INTERNAL_SERVER_ERROR, 
+      ErrorCode.CRYPTO_API_ERROR, 
+      details
+    );
   }
 } 
