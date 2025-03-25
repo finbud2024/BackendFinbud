@@ -22,7 +22,6 @@ import { AdminGuard } from '../../common/guards/admin.guard';
 import { CreatePortfolioDto } from './dto/create-portfolio.dto';
 import { UpdatePortfolioDto } from './dto/update-portfolio.dto';
 import { CreateUserHoldingDto } from './dto/create-user-holding.dto';
-import { UpdateUserHoldingDto } from './dto/update-user-holding.dto';
 import { AddPortfolioEntryDto } from './dto/add-portfolio-entry.dto';
 import { UpdateStockHoldingDto } from './dto/update-stock-holding.dto';
 import { Request } from 'express';
@@ -47,8 +46,6 @@ export class PortfolioController extends BaseController {
   constructor(private readonly portfolioService: PortfolioService) {
     super();
   }
-
-  // =============== FRONTEND-FRIENDLY ROUTES (USER'S OWN PORTFOLIO) ===============
 
   // GET /portfolios/me - Get current user's portfolio
   @Get('me')
@@ -133,8 +130,6 @@ export class PortfolioController extends BaseController {
   async initializeMyPortfolio(@Req() request: Request) {
     return this.portfolioService.initializeCurrentUserPortfolio(request);
   }
-
-  // =============== ADMIN-ONLY ROUTES ===============
 
   // GET /portfolios - Get all portfolios (admin only)
   @UseGuards(AdminGuard)
