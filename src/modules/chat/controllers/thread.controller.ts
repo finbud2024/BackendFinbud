@@ -4,12 +4,14 @@ import { CreateThreadDto, UpdateThreadDto } from '../dto';
 import { Request } from 'express';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { AdminGuard } from '../../../common/guards/admin.guard';
-import { ExceptionFactory } from '../../../common/exceptions/app.exception';
+import { BaseController } from '../../../common/base/base.controller';
 
 @Controller('threads')
 @UseGuards(JwtAuthGuard)
-export class ThreadController {
-  constructor(private readonly threadService: ThreadService) {}
+export class ThreadController extends BaseController {
+  constructor(private readonly threadService: ThreadService) {
+    super();
+  }
 
   @Post()
   create(@Body() createThreadDto: CreateThreadDto) {
@@ -18,8 +20,7 @@ export class ThreadController {
 
   @Post('me')
   createForCurrentUser(@Req() request: Request, @Body() createThreadDto: Partial<CreateThreadDto>) {
-    const userId = this.getUserIdFromRequest(request);
-    return this.threadService.createForUser(userId, createThreadDto);
+    return this.threadService.createForCurrentUser(request, createThreadDto);
   }
 
   @Get('me')
@@ -28,9 +29,7 @@ export class ThreadController {
     @Query('page') page?: number,
     @Query('limit') limit?: number,
   ) {
-    // Get current user's threads from JWT token
-    const userId = this.getUserIdFromRequest(request);
-    return this.threadService.findAll(userId, page, limit);
+    return this.threadService.findAllForCurrentUser(request, page, limit);
   }
 
   @Get('user/:userId')
@@ -40,7 +39,7 @@ export class ThreadController {
     @Query('page') page?: number,
     @Query('limit') limit?: number,
   ) {
-    return this.threadService.findAll(userId, page, limit);
+    return this.threadService.findThreadsByUser(userId, page, limit);
   }
 
   @Delete('user/:userId')
@@ -67,7 +66,7 @@ export class ThreadController {
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.threadService.findOne(id);
+    return this.threadService.findThreadById(id);
   }
 
   @Put(':id')
@@ -79,14 +78,5 @@ export class ThreadController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async remove(@Param('id') id: string) {
     await this.threadService.remove(id);
-  }
-  
-  // Helper method to get the user ID from the request object
-  private getUserIdFromRequest(request: Request): string {
-    const user = request.user as any;
-    if (!user || !user.userId) {
-      throw ExceptionFactory.unauthorized('User identity not found in request');
-    }
-    return user.userId;
   }
 } 

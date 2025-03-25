@@ -5,16 +5,18 @@ import { CreateChatDto, UpdateChatDto, QueryDto } from '../dto';
 import { Request } from 'express';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { AdminGuard } from '../../../common/guards/admin.guard';
-import { ExceptionFactory } from '../../../common/exceptions/app.exception';
 import { Source } from '../interfaces/source.interface';
+import { BaseController } from '../../../common/base/base.controller';
 
 @Controller('chats')
 @UseGuards(JwtAuthGuard)
-export class ChatController {
+export class ChatController extends BaseController {
   constructor(
     private readonly chatService: ChatService,
     private readonly aiService: AiService
-  ) {}
+  ) {
+    super();
+  }
 
   @Post()
   create(@Body() createChatDto: CreateChatDto) {
@@ -32,8 +34,7 @@ export class ChatController {
     chatId: string;
     threadId: string;
   }> {
-    const userId = this.getUserIdFromRequest(request);
-    return this.aiService.processQuery(queryDto, userId);
+    return this.aiService.processQueryWithRequest(queryDto, request);
   }
 
   @Get('thread/:threadId')
@@ -76,14 +77,5 @@ export class ChatController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async remove(@Param('id') id: string) {
     await this.chatService.remove(id);
-  }
-  
-  // Helper method to get the user ID from the request object
-  private getUserIdFromRequest(request: Request): string {
-    const user = request.user as any;
-    if (!user || !user.userId) {
-      throw ExceptionFactory.unauthorized('User identity not found in request');
-    }
-    return user.userId;
   }
 } 

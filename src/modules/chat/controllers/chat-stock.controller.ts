@@ -4,12 +4,14 @@ import { CreateChatStockDto, UpdateChatStockDto } from '../dto';
 import { Request } from 'express';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { AdminGuard } from '../../../common/guards/admin.guard';
-import { ExceptionFactory } from '../../../common/exceptions/app.exception';
+import { BaseController } from '../../../common/base/base.controller';
 
 @Controller('chat-stock')
 @UseGuards(JwtAuthGuard)
-export class ChatStockController {
-  constructor(private readonly chatStockService: ChatStockService) {}
+export class ChatStockController extends BaseController {
+  constructor(private readonly chatStockService: ChatStockService) {
+    super();
+  }
 
   @Post('update-response')
   updateResponse(@Body() createChatStockDto: CreateChatStockDto) {
@@ -70,14 +72,5 @@ export class ChatStockController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async remove(@Param('id') id: string) {
     await this.chatStockService.remove(id);
-  }
-  
-  // Helper method to get the user ID from the request object
-  private getUserIdFromRequest(request: Request): string {
-    const user = request.user as any;
-    if (!user || !user.userId) {
-      throw ExceptionFactory.unauthorized('User identity not found in request');
-    }
-    return user.userId;
   }
 } 

@@ -7,10 +7,11 @@ import { CreateChatDto } from '../dto';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 import { Source } from '../interfaces/source.interface';
+import { BaseService } from '../../../common/base/base.service';
+import { Request } from 'express';
 
 @Injectable()
-export class AiService {
-  private readonly logger = new Logger(AiService.name);
+export class AiService extends BaseService<any> {
   private readonly openaiApiKey: string | undefined;
   private readonly braveSearchApiKey: string | undefined;
 
@@ -19,8 +20,24 @@ export class AiService {
     private readonly chatService: ChatService,
     private readonly configService: ConfigService,
   ) {
+    super({} as any, 'AI'); // Pass empty object as repository since this service doesn't use one
     this.openaiApiKey = this.configService.get<string>('OPENAI_API_KEY');
     this.braveSearchApiKey = this.configService.get<string>('BRAVE_SEARCH_API_KEY');
+  }
+
+  /**
+   * Process an AI query and optionally associate it with a thread
+   * using request object to extract user ID
+   */
+  async processQueryWithRequest(queryDto: QueryDto, request: Request): Promise<{
+    answer: string;
+    sources: Source[];
+    followUpQuestions: string[];
+    chatId: string;
+    threadId: string;
+  }> {
+    const userId = this.getUserIdFromRequest(request);
+    return this.processQuery(queryDto, userId);
   }
 
   /**

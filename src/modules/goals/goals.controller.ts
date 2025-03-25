@@ -20,11 +20,14 @@ import { AdminGuard } from '../../common/guards/admin.guard';
 import { GoalDocument } from './entities/goal.entity';
 import { Request } from 'express';
 import { ExceptionFactory } from '../../common/exceptions/app.exception';
+import { BaseController } from '../../common/base/base.controller';
 
 @Controller('goals')
 @UseGuards(JwtAuthGuard)
-export class GoalsController {
-  constructor(private readonly goalsService: GoalsService) {}
+export class GoalsController extends BaseController {
+  constructor(private readonly goalsService: GoalsService) {
+    super();
+  }
 
   // Frontend-friendly endpoints (user's own goals)
   
@@ -33,31 +36,22 @@ export class GoalsController {
     @Body() createGoalDto: CreateGoalDto,
     @Req() request: Request,
   ): Promise<GoalDocument> {
-    // Get the userId from request
-    const userId = this.getUserIdFromRequest(request);
-    
-    // Set the userId from the authenticated user
-    createGoalDto.userId = userId;
-    
-    return this.goalsService.create(createGoalDto);
+    return this.goalsService.createForCurrentUser(request, createGoalDto);
   }
 
   @Get('me')
   async findAllMy(@Req() request: Request) {
-    const userId = this.getUserIdFromRequest(request);
-    return this.goalsService.findAllForUser(userId);
+    return this.goalsService.findAllForCurrentUser(request);
   }
 
   @Get('me/achieved')
   async findMyAchieved(@Req() request: Request) {
-    const userId = this.getUserIdFromRequest(request);
-    return this.goalsService.findByAchievementStatus(userId, true);
+    return this.goalsService.findCurrentUserAchievementStatus(request, true);
   }
 
   @Get('me/in-progress')
   async findMyInProgress(@Req() request: Request) {
-    const userId = this.getUserIdFromRequest(request);
-    return this.goalsService.findByAchievementStatus(userId, false);
+    return this.goalsService.findCurrentUserAchievementStatus(request, false);
   }
 
   @Get('me/upcoming')
@@ -65,8 +59,7 @@ export class GoalsController {
     @Req() request: Request,
     @Query('days') days: number = 30
   ) {
-    const userId = this.getUserIdFromRequest(request);
-    return this.goalsService.findUpcomingDeadlines(userId, Number(days));
+    return this.goalsService.findCurrentUserUpcomingDeadlines(request, Number(days));
   }
 
   @Get('me/:id')
@@ -74,8 +67,7 @@ export class GoalsController {
     @Param('id') id: string,
     @Req() request: Request,
   ) {
-    const userId = this.getUserIdFromRequest(request);
-    return this.goalsService.findUserGoal(id, userId);
+    return this.goalsService.findCurrentUserGoal(request, id);
   }
 
   @Patch('me/:id')
@@ -84,16 +76,7 @@ export class GoalsController {
     @Body() updateGoalDto: UpdateGoalDto,
     @Req() request: Request,
   ) {
-    const userId = this.getUserIdFromRequest(request);
-    
-    // Verify the goal exists and belongs to the user
-    await this.goalsService.findUserGoal(id, userId);
-    
-    // Prevent changing userId
-    delete updateGoalDto.userId;
-    
-    // Update the goal
-    return this.goalsService.update(id, updateGoalDto);
+    return this.goalsService.updateCurrentUserGoal(request, id, updateGoalDto);
   }
 
   @Patch('me/:id/progress')
@@ -106,13 +89,7 @@ export class GoalsController {
       throw ExceptionFactory.invalidGoalData('currentAmount is required');
     }
     
-    const userId = this.getUserIdFromRequest(request);
-    
-    // Verify the goal exists and belongs to the user
-    await this.goalsService.findUserGoal(id, userId);
-    
-    // Update the goal progress
-    return this.goalsService.updateProgress(id, body.currentAmount);
+    return this.goalsService.updateCurrentUserGoalProgress(request, id, body.currentAmount);
   }
 
   @Delete('me/:id')
@@ -121,21 +98,13 @@ export class GoalsController {
     @Param('id') id: string,
     @Req() request: Request,
   ) {
-    const userId = this.getUserIdFromRequest(request);
-    
-    // Verify the goal exists and belongs to the user
-    await this.goalsService.findUserGoal(id, userId);
-    
-    // Remove the goal
-    await this.goalsService.remove(id);
+    await this.goalsService.removeCurrentUserGoal(request, id);
   }
 
   @Delete('me')
   @HttpCode(HttpStatus.OK)
   async removeAllMyGoals(@Req() request: Request) {
-    const userId = this.getUserIdFromRequest(request);
-    const count = await this.goalsService.removeMany({ userId });
-    return { message: `Successfully deleted ${count} goals` };
+    return this.goalsService.removeAllCurrentUserGoals(request);
   }
 
   // Admin-only endpoints
@@ -180,14 +149,5 @@ export class GoalsController {
   async removeAllForUser(@Param('userId') userId: string) {
     const count = await this.goalsService.removeMany({ userId });
     return { message: `Successfully deleted ${count} goals` };
-  }
-
-  // Helper method to get the user ID from the request object
-  private getUserIdFromRequest(request: Request): string {
-    const user = request.user as any;
-    if (!user || !user.userId) {
-      throw ExceptionFactory.unauthorized('User identity not found in request');
-    }
-    return user.userId;
   }
 } 

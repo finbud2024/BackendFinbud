@@ -6,6 +6,7 @@ import { CreateGoalDto } from './dto/create-goal.dto';
 import { UpdateGoalDto } from './dto/update-goal.dto';
 import { Types } from 'mongoose';
 import { ExceptionFactory } from '../../common/exceptions/app.exception';
+import { Request } from 'express';
 
 @Injectable()
 export class GoalsService extends BaseService<GoalDocument> {
@@ -27,6 +28,14 @@ export class GoalsService extends BaseService<GoalDocument> {
   }
 
   /**
+   * Find all goals for the current user in the request
+   */
+  async findAllForCurrentUser(request: Request): Promise<GoalDocument[]> {
+    const userId = this.getUserIdFromRequest(request);
+    return this.findAllForUser(userId);
+  }
+
+  /**
    * Find goals by achievement status for a user
    */
   async findByAchievementStatus(userId: string, isAchieved: boolean): Promise<GoalDocument[]> {
@@ -35,11 +44,27 @@ export class GoalsService extends BaseService<GoalDocument> {
   }
 
   /**
+   * Find goals by achievement status for the current user in the request
+   */
+  async findCurrentUserAchievementStatus(request: Request, isAchieved: boolean): Promise<GoalDocument[]> {
+    const userId = this.getUserIdFromRequest(request);
+    return this.findByAchievementStatus(userId, isAchieved);
+  }
+
+  /**
    * Find goals with approaching deadlines for a user
    */
   async findUpcomingDeadlines(userId: string, daysThreshold: number = 30): Promise<GoalDocument[]> {
     this.logger.log(`Finding goals with deadlines within ${daysThreshold} days for user ${userId}`);
     return this.goalsRepository.findUpcomingDeadlines(userId, daysThreshold);
+  }
+
+  /**
+   * Find goals with approaching deadlines for the current user in the request
+   */
+  async findCurrentUserUpcomingDeadlines(request: Request, daysThreshold: number = 30): Promise<GoalDocument[]> {
+    const userId = this.getUserIdFromRequest(request);
+    return this.findUpcomingDeadlines(userId, daysThreshold);
   }
 
   /**
@@ -60,6 +85,15 @@ export class GoalsService extends BaseService<GoalDocument> {
       this.logger.error(`Error creating goal: ${error.message}`);
       throw ExceptionFactory.goalCreateFailed(`Valid userId and required fields: ${error.message}`);
     }
+  }
+
+  /**
+   * Create a goal for the current user in the request
+   */
+  async createForCurrentUser(request: Request, createGoalDto: CreateGoalDto): Promise<GoalDocument> {
+    const userId = this.getUserIdFromRequest(request);
+    createGoalDto.userId = userId;
+    return this.create(createGoalDto);
   }
 
   /**
@@ -87,6 +121,57 @@ export class GoalsService extends BaseService<GoalDocument> {
       currentAmount,
       isAchieved 
     });
+  }
+
+  /**
+   * Update a goal for the current user
+   */
+  async updateCurrentUserGoal(request: Request, id: string, updateGoalDto: UpdateGoalDto): Promise<GoalDocument> {
+    const userId = this.getUserIdFromRequest(request);
+    
+    // Verify the goal exists and belongs to the user
+    await this.findUserGoal(id, userId);
+    
+    // Prevent changing userId
+    delete updateGoalDto.userId;
+    
+    // Update the goal
+    return this.update(id, updateGoalDto);
+  }
+
+  /**
+   * Update a goal's progress for the current user
+   */
+  async updateCurrentUserGoalProgress(request: Request, id: string, currentAmount: number): Promise<GoalDocument> {
+    const userId = this.getUserIdFromRequest(request);
+    
+    // Verify the goal exists and belongs to the user
+    await this.findUserGoal(id, userId);
+    
+    // Update the goal progress
+    return this.updateProgress(id, currentAmount);
+  }
+
+  /**
+   * Remove a goal for the current user
+   */
+  async removeCurrentUserGoal(request: Request, id: string): Promise<void> {
+    const userId = this.getUserIdFromRequest(request);
+    
+    // Verify the goal exists and belongs to the user
+    await this.findUserGoal(id, userId);
+    
+    // Remove the goal
+    await this.remove(id);
+  }
+
+  /**
+   * Remove all goals for the current user
+   */
+  async removeAllCurrentUserGoals(request: Request): Promise<{ message: string }> {
+    const userId = this.getUserIdFromRequest(request);
+    const count = await this.removeMany({ userId });
+    return { message: `Successfully deleted ${count} goals` };
   }
 
   /**
@@ -136,5 +221,13 @@ export class GoalsService extends BaseService<GoalDocument> {
     }
     
     return goal;
+  }
+
+  /**
+   * Find a goal by ID for the current user in the request
+   */
+  async findCurrentUserGoal(request: Request, goalId: string): Promise<GoalDocument> {
+    const userId = this.getUserIdFromRequest(request);
+    return this.findUserGoal(goalId, userId);
   }
 } 

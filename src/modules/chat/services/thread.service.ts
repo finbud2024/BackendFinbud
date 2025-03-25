@@ -3,13 +3,17 @@ import { ThreadRepository } from '../repositories/thread.repository';
 import { ChatRepository } from '../repositories/chat.repository';
 import { CreateThreadDto, UpdateThreadDto } from '../dto';
 import { ExceptionFactory } from '../../../common/exceptions/app.exception';
+import { BaseService } from '../../../common/base/base.service';
+import { Request } from 'express';
 
 @Injectable()
-export class ThreadService {
+export class ThreadService extends BaseService<any> {
   constructor(
     private readonly threadRepository: ThreadRepository,
     private readonly chatRepository: ChatRepository,
-  ) {}
+  ) {
+    super(threadRepository, 'Thread');
+  }
 
   async create(createThreadDto: CreateThreadDto) {
     return this.threadRepository.create(createThreadDto);
@@ -24,15 +28,37 @@ export class ThreadService {
     return this.threadRepository.create(completeDto);
   }
 
-  async findAll(userId: string, page = 1, limit = 10) {
+  /**
+   * Create a thread for the user identified in the request
+   */
+  async createForCurrentUser(request: Request, createDto: Partial<CreateThreadDto>) {
+    const userId = this.getUserIdFromRequest(request);
+    return this.createForUser(userId, createDto);
+  }
+
+  /**
+   * Find all threads for a specific user
+   */
+  async findThreadsByUser(userId: string, page = 1, limit = 10) {
     return this.threadRepository.findThreadsByUser(userId, page, limit);
+  }
+
+  /**
+   * Find all threads for the user in the request
+   */
+  async findAllForCurrentUser(request: Request, page = 1, limit = 10) {
+    const userId = this.getUserIdFromRequest(request);
+    return this.findThreadsByUser(userId, page, limit);
   }
 
   async findAllThreads() {
     return this.threadRepository.findAll();
   }
 
-  async findOne(id: string) {
+  /**
+   * Find a specific thread by ID
+   */
+  async findThreadById(id: string) {
     const thread = await this.threadRepository.findById(id);
     if (!thread) {
       throw ExceptionFactory.threadNotFoundSimple();
