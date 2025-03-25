@@ -15,6 +15,15 @@ export class ThreadService {
     return this.threadRepository.create(createThreadDto);
   }
 
+  async createForUser(userId: string, createDto: Partial<CreateThreadDto>) {
+    const completeDto: CreateThreadDto = {
+      userId,
+      title: createDto.title
+    };
+    
+    return this.threadRepository.create(completeDto);
+  }
+
   async findAll(userId: string, page = 1, limit = 10) {
     return this.threadRepository.findThreadsByUser(userId, page, limit);
   }

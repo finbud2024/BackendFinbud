@@ -16,6 +16,12 @@ export class ThreadController {
     return this.threadService.create(createThreadDto);
   }
 
+  @Post('me')
+  createForCurrentUser(@Req() request: Request, @Body() createThreadDto: Partial<CreateThreadDto>) {
+    const userId = this.getUserIdFromRequest(request);
+    return this.threadService.createForUser(userId, createThreadDto);
+  }
+
   @Get('me')
   findMyThreads(
     @Req() request: Request,

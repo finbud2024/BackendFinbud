@@ -2,7 +2,7 @@ import { IsMongoId, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class CreateChatStockDto {
   @IsMongoId()
-  @IsNotEmpty({ message: 'userId is required' })
+  @IsOptional()
   userId: string;
 
   @IsString()

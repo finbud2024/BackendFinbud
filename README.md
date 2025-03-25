@@ -2723,11 +2723,11 @@ Get all threads for the current authenticated user.
 }
 ```
 
-#### POST /threads
+#### POST /threads/me
 
-Create a new thread.
+Create a new thread for the current user.
 
-**URL**: `/threads`
+**URL**: `/threads/me`
 
 **Method**: `POST`
 
@@ -2736,7 +2736,6 @@ Create a new thread.
 **Request Body**:
 ```json
 {
-  "userId": "60d21b4667d0d8992e610c85",
   "title": "Investment Advice"
 }
 ```
@@ -3119,4 +3118,35 @@ curl -X GET http://localhost:3000/api/chats/thread/THREAD_ID_FROM_PREVIOUS_RESPO
 ```bash
 curl -X GET http://localhost:3000/api/chat-stock/responses/today/me \
   -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+#### POST /chat-stock/responses/me
+
+Create or update a stock prediction response for the current user.
+
+**URL**: `/chat-stock/responses/me`
+
+**Method**: `POST`
+
+**Auth required**: Yes (JWT token)
+
+**Request Body**:
+```json
+{
+  "prompt": "What will happen to Tesla stock this week?",
+  "response": "Based on current market trends and recent company announcements, Tesla stock might see moderate volatility this week. The upcoming earnings report and production numbers could create short-term price fluctuations. However, always remember that stock predictions are speculative and actual performance depends on numerous factors."
+}
+```
+
+**Success Response**:
+- **Code**: 201 CREATED
+- **Content**:
+```json
+{
+  "_id": "60d21b4667d0d8992e610c89",
+  "userId": "60d21b4667d0d8992e610c85",
+  "prompt": "What will happen to Tesla stock this week?",
+  "response": "Based on current market trends and recent company announcements, Tesla stock might see moderate volatility this week...",
+  "createdAt": "2023-06-01T09:45:00Z"
+}
 ```

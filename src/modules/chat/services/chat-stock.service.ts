@@ -13,6 +13,21 @@ export class ChatStockService {
     return this.chatStockRepository.create(createChatStockDto);
   }
 
+  async createForUser(userId: string, createDto: Partial<CreateChatStockDto>) {
+    // Validate required fields
+    if (!createDto.prompt) {
+      throw ExceptionFactory.invalidInput('prompt field is required');
+    }
+    
+    const completeDto: CreateChatStockDto = {
+      userId,
+      prompt: createDto.prompt,
+      response: createDto.response
+    };
+    
+    return this.chatStockRepository.create(completeDto);
+  }
+
   async findAll(userId: string, page = 1, limit = 15) {
     return this.chatStockRepository.findUserChats(userId, page, limit);
   }

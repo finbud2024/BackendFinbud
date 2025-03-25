@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Put, Param, Delete, Query, Req, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Body, Put, Param, Delete, Query, Req, UseGuards, HttpCode, HttpStatus, BadRequestException } from '@nestjs/common';
 import { ChatStockService } from '../services/chat-stock.service';
 import { CreateChatStockDto, UpdateChatStockDto } from '../dto';
 import { Request } from 'express';
@@ -14,6 +14,12 @@ export class ChatStockController {
   @Post('update-response')
   updateResponse(@Body() createChatStockDto: CreateChatStockDto) {
     return this.chatStockService.create(createChatStockDto);
+  }
+
+  @Post('responses/me')
+  createForCurrentUser(@Req() request: Request, @Body() createDto: Partial<CreateChatStockDto>) {
+    const userId = this.getUserIdFromRequest(request);
+    return this.chatStockService.createForUser(userId, createDto);
   }
 
   @Get('responses/me')
