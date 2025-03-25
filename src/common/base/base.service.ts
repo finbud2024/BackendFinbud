@@ -1,6 +1,8 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Document, FilterQuery, Types, UpdateQuery, QueryOptions } from 'mongoose';
 import { BaseRepository } from './base.repository';
+import { Request } from 'express';
+import { ExceptionFactory } from '../exceptions/app.exception';
 
 @Injectable()
 export class BaseService<T extends Document> {
@@ -719,5 +721,18 @@ export class BaseService<T extends Document> {
     }
     
     return formatEntity(entities);
+  }
+
+  /**
+   * Extract user ID from request object
+   * @param request Express request object
+   * @returns User ID from JWT payload
+   */
+  getUserIdFromRequest(request: Request): string {
+    const user = request.user as any;
+    if (!user || !user.userId) {
+      throw ExceptionFactory.unauthorized('User identity not found in request');
+    }
+    return user.userId;
   }
 } 

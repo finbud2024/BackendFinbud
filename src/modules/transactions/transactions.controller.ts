@@ -10,7 +10,6 @@ import {
   Req,
   HttpStatus,
   HttpCode,
-  Logger,
 } from '@nestjs/common';
 import { TransactionsService } from './transactions.service';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
@@ -21,13 +20,14 @@ import { UserRole } from '../../common/decorators/user-role.decorator';
 import { TransactionDocument } from './entities/transaction.entity';
 import { Request } from 'express';
 import { ExceptionFactory } from '../../common/exceptions/app.exception';
+import { BaseController } from '../../common/base/base.controller';
 
 @Controller('transactions')
 @UseGuards(JwtAuthGuard)
-export class TransactionsController {
-  private readonly logger = new Logger(TransactionsController.name);
-
-  constructor(private readonly transactionsService: TransactionsService) {}
+export class TransactionsController extends BaseController {
+  constructor(private readonly transactionsService: TransactionsService) {
+    super();
+  }
 
   @Post()
   async create(
@@ -56,14 +56,12 @@ export class TransactionsController {
   @Get()
   @UseGuards(AdminGuard)
   findAll() {
-    this.logger.log('Finding all transactions (admin only)');
     return this.transactionsService.findAll();
   }
 
   @Get('my')
   async findAllMy(@Req() request: Request) {
     const userId = this.getUserIdFromRequest(request);
-    this.logger.log(`Finding all transactions for user ${userId}`);
     
     // Return transactions with recalculated balances
     return this.transactionsService.getTransactionsWithBalances(userId);
@@ -81,7 +79,6 @@ export class TransactionsController {
     
     // Only allow access if the user is viewing their own transactions or is an admin
     if (userId !== user.userId && !isAdmin) {
-      this.logger.warn(`User ${user.userId} attempted to access transactions for user ${userId}`);
       throw ExceptionFactory.forbidden('User-specific resource');
     }
     
@@ -89,8 +86,6 @@ export class TransactionsController {
       ? this.getUserIdFromRequest(request) 
       : userId;
       
-    this.logger.log(`Finding all transactions for user ${effectiveUserId}`);
-    
     return this.transactionsService.getTransactionsWithBalances(effectiveUserId);
   }
 
@@ -98,7 +93,6 @@ export class TransactionsController {
   @UseGuards(AdminGuard)
   @HttpCode(HttpStatus.NO_CONTENT)
   async removeAll() {
-    this.logger.log('Removing all transactions (admin only)');
     await this.transactionsService.removeMany({});
     return;
   }
@@ -106,7 +100,6 @@ export class TransactionsController {
   @Delete('my/all')
   async removeAllMy(@Req() request: Request) {
     const userId = this.getUserIdFromRequest(request);
-    this.logger.log(`Removing all transactions for user ${userId}`);
     
     const count = await this.transactionsService.removeAllForUser(userId);
     return { message: `Successfully deleted ${count} transactions` };
@@ -115,7 +108,6 @@ export class TransactionsController {
   @Delete('u/:userId')
   @UseGuards(AdminGuard)
   async removeAllForUser(@Param('userId') userId: string) {
-    this.logger.log(`Removing all transactions for user ${userId}`);
     
     const count = await this.transactionsService.removeAllForUser(userId);
     return { message: `Successfully deleted ${count} transactions` };
@@ -127,11 +119,8 @@ export class TransactionsController {
     @Param('id') id: string,
     @Req() request: Request,
   ) {
-    this.logger.log(`Finding transaction with ID ${id}`);
-    
     // Get the authenticated user
     const user = request.user as any;
-    this.logger.debug(`User from request: ${JSON.stringify(user)}`);
     
     // Get the transaction
     const transaction = await this.transactionsService.findById(id);
@@ -141,17 +130,11 @@ export class TransactionsController {
       throw ExceptionFactory.transactionNotFound(id);
     }
     
-    this.logger.debug(`Transaction userId: ${transaction.userId} (${typeof transaction.userId})`);
-    this.logger.debug(`User userId: ${user.userId} (${typeof user.userId})`);
-    
     // Check if user owns this transaction or is admin
     const isOwner = transaction.userId.toString() === user.userId;
     const isAdmin = user.accountData?.priviledge === 'admin';
     
-    this.logger.debug(`Is owner: ${isOwner}, Is admin: ${isAdmin}`);
-    
     if (!isOwner && !isAdmin) {
-      this.logger.warn(`User ${user.userId} attempted to access transaction ${id} belonging to user ${transaction.userId}`);
       throw ExceptionFactory.forbidden('User-specific resource');
     }
     
@@ -165,8 +148,6 @@ export class TransactionsController {
     @Body() updateTransactionDto: UpdateTransactionDto,
     @Req() request: Request,
   ) {
-    this.logger.log(`Updating transaction with ID ${id}`);
-    
     // Get the authenticated user
     const user = request.user as any;
     
@@ -188,7 +169,6 @@ export class TransactionsController {
     const isAdmin = user.accountData?.priviledge === 'admin';
     
     if (!isOwner && !isAdmin) {
-      this.logger.warn(`User ${user.userId} attempted to update transaction ${id} belonging to user ${transaction.userId}`);
       throw ExceptionFactory.forbidden('User-specific resource');
     }
     
@@ -213,8 +193,6 @@ export class TransactionsController {
     @Param('id') id: string,
     @Req() request: Request,
   ) {
-    this.logger.log(`Removing transaction with ID ${id}`);
-    
     // Get the authenticated user
     const user = request.user as any;
     
@@ -231,7 +209,6 @@ export class TransactionsController {
     const isAdmin = user.accountData?.priviledge === 'admin';
     
     if (!isOwner && !isAdmin) {
-      this.logger.warn(`User ${user.userId} attempted to delete transaction ${id} belonging to user ${transaction.userId}`);
       throw ExceptionFactory.forbidden('User-specific resource');
     }
     
@@ -240,15 +217,5 @@ export class TransactionsController {
     
     // No content response (204)
     return;
-  }
-  
-  // Helper method to get the user ID from the request object
-  private getUserIdFromRequest(request: Request): string {
-    const user = request.user as any;
-    if (!user || !user.userId) {
-      this.logger.error('User not found in request or missing userId');
-      throw ExceptionFactory.unauthorized('User identity not found in request');
-    }
-    return user.userId;
   }
 } 

@@ -5,6 +5,7 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { UserDocument } from './entities/user.entity';
 import { ExceptionFactory } from '../../common/exceptions/app.exception';
 import { BaseService } from '../../common/base/base.service';
+import { Request } from 'express';
 
 @Injectable()
 export class UsersService extends BaseService<UserDocument> {
@@ -116,5 +117,54 @@ export class UsersService extends BaseService<UserDocument> {
     }
 
     return user;
+  }
+
+  /**
+   * Resolve user ID, handling special 'self' value
+   * @param userId User ID from request params (may be 'self')
+   * @param request Express request object (for getting current user)
+   * @returns Resolved user ID
+   */
+  resolveUserId(userId: string, request: Request): string {
+    if (userId === 'self') {
+      return this.getUserIdFromRequest(request);
+    }
+    return userId;
+  }
+
+  /**
+   * Update user settings
+   * @param userId User ID 
+   * @param settings Settings object with darkMode property
+   * @returns Updated user
+   */
+  async updateSettings(userId: string, settings: { darkMode: boolean }): Promise<{
+    message: string;
+    darkMode: boolean;
+  }> {
+    if (typeof settings.darkMode !== 'boolean') {
+      throw ExceptionFactory.missingUserData('darkMode setting (boolean)');
+    }
+
+    const updateUserDto: UpdateUserDto = {
+      settings: { darkMode: settings.darkMode }
+    };
+
+    await this.update(userId, updateUserDto);
+
+    return {
+      message: 'User settings updated successfully',
+      darkMode: settings.darkMode
+    };
+  }
+
+  /**
+   * Delete a user and return a success message
+   * @param userId User ID to delete
+   * @returns Success message
+   */
+  async removeWithMessage(userId: string): Promise<{ message: string }> {
+    await this.remove(userId);
+    return { message: 'User deleted successfully' };
   }
 } 

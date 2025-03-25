@@ -8,7 +8,6 @@ import {
   Param, 
   Query, 
   UseGuards,
-  Logger,
   ParseUUIDPipe,
   BadRequestException,
   Req,
@@ -29,6 +28,7 @@ import { AddPortfolioEntryDto } from './dto/add-portfolio-entry.dto';
 import { UpdateStockHoldingDto } from './dto/update-stock-holding.dto';
 import { Request } from 'express';
 import { ExceptionFactory } from '../../common/exceptions/app.exception';
+import { BaseController } from '../../common/base/base.controller';
 
 // DTO for date range query params
 class DateRangeDto {
@@ -45,10 +45,10 @@ class DateRangeDto {
 
 @Controller('portfolios')
 @UseGuards(JwtAuthGuard)
-export class PortfolioController {
-  private readonly logger = new Logger(PortfolioController.name);
-
-  constructor(private readonly portfolioService: PortfolioService) {}
+export class PortfolioController extends BaseController {
+  constructor(private readonly portfolioService: PortfolioService) {
+    super();
+  }
 
   // =============== FRONTEND-FRIENDLY ROUTES (USER'S OWN PORTFOLIO) ===============
 
@@ -56,7 +56,6 @@ export class PortfolioController {
   @Get('me')
   async getMyPortfolio(@Req() request: Request) {
     const userId = this.getUserIdFromRequest(request);
-    this.logger.log(`Getting portfolio for current user: ${userId}`);
     return this.portfolioService.getUserPortfolio(userId);
   }
 
@@ -69,8 +68,6 @@ export class PortfolioController {
     const userId = this.getUserIdFromRequest(request);
     const startDate = dateRange.startDate || new Date(0); // Default to beginning of epoch
     const endDate = dateRange.endDate || new Date(); // Default to current date
-    
-    this.logger.log(`Getting portfolio history for current user: ${userId} from ${startDate} to ${endDate}`);
     return this.portfolioService.getPortfolioHistory(userId, startDate, endDate);
   }
 
@@ -78,7 +75,6 @@ export class PortfolioController {
   @Get('me/holdings')
   async getMyHoldings(@Req() request: Request) {
     const userId = this.getUserIdFromRequest(request);
-    this.logger.log(`Getting holdings for current user: ${userId}`);
     return this.portfolioService.getUserHoldings(userId);
   }
 
@@ -89,7 +85,6 @@ export class PortfolioController {
     @Req() request: Request
   ) {
     const userId = this.getUserIdFromRequest(request);
-    this.logger.log(`Creating portfolio for current user: ${userId}`);
     
     // Set the userId from the authenticated user
     createPortfolioDto.userId = userId;
@@ -104,7 +99,6 @@ export class PortfolioController {
     @Req() request: Request
   ) {
     const userId = this.getUserIdFromRequest(request);
-    this.logger.log(`Creating holdings for current user: ${userId}`);
     
     // Set the userId from the authenticated user
     createUserHoldingDto.userId = userId;
@@ -119,7 +113,6 @@ export class PortfolioController {
     @Req() request: Request
   ) {
     const userId = this.getUserIdFromRequest(request);
-    this.logger.log(`Adding portfolio entry for current user: ${userId}`);
     return this.portfolioService.addPortfolioEntry(userId, entryData);
   }
 
@@ -130,7 +123,6 @@ export class PortfolioController {
     @Req() request: Request
   ) {
     const userId = this.getUserIdFromRequest(request);
-    this.logger.log(`Updating portfolio for current user: ${userId}`);
     return this.portfolioService.updatePortfolio(userId, updatePortfolioDto);
   }
 
@@ -142,7 +134,6 @@ export class PortfolioController {
     @Req() request: Request
   ) {
     const userId = this.getUserIdFromRequest(request);
-    this.logger.log(`Updating stock holding for current user: ${userId}, symbol: ${symbol}`);
     return this.portfolioService.updateStockHolding(userId, symbol, updateData);
   }
 
@@ -153,7 +144,6 @@ export class PortfolioController {
     @Req() request: Request
   ) {
     const userId = this.getUserIdFromRequest(request);
-    this.logger.log(`Removing stock holding for current user: ${userId}, symbol: ${symbol}`);
     return this.portfolioService.removeStockHolding(userId, symbol);
   }
 
@@ -161,7 +151,6 @@ export class PortfolioController {
   @Post('me/initialize')
   async initializeMyPortfolio(@Req() request: Request) {
     const userId = this.getUserIdFromRequest(request);
-    this.logger.log(`Initializing portfolio and holdings for current user: ${userId}`);
     return this.portfolioService.initializeUserPortfolio(userId);
   }
 
@@ -171,7 +160,6 @@ export class PortfolioController {
   @UseGuards(AdminGuard)
   @Get()
   async getAllPortfolios() {
-    this.logger.log('Admin: Getting all portfolios');
     return this.portfolioService.findAll();
   }
 
@@ -179,7 +167,6 @@ export class PortfolioController {
   @UseGuards(AdminGuard)
   @Get(':userId')
   async getUserPortfolio(@Param('userId') userId: string) {
-    this.logger.log(`Admin: Getting portfolio for user: ${userId}`);
     return this.portfolioService.getUserPortfolio(userId);
   }
 
@@ -192,8 +179,6 @@ export class PortfolioController {
   ) {
     const startDate = dateRange.startDate || new Date(0);
     const endDate = dateRange.endDate || new Date();
-    
-    this.logger.log(`Admin: Getting portfolio history for user: ${userId} from ${startDate} to ${endDate}`);
     return this.portfolioService.getPortfolioHistory(userId, startDate, endDate);
   }
 
@@ -201,7 +186,6 @@ export class PortfolioController {
   @UseGuards(AdminGuard)
   @Get(':userId/holdings')
   async getUserHoldings(@Param('userId') userId: string) {
-    this.logger.log(`Admin: Getting holdings for user: ${userId}`);
     return this.portfolioService.getUserHoldings(userId);
   }
 
@@ -209,7 +193,6 @@ export class PortfolioController {
   @UseGuards(AdminGuard)
   @Post()
   async createPortfolio(@Body() createPortfolioDto: CreatePortfolioDto) {
-    this.logger.log(`Admin: Creating portfolio for user: ${createPortfolioDto.userId}`);
     return this.portfolioService.createPortfolio(createPortfolioDto);
   }
 
@@ -220,7 +203,6 @@ export class PortfolioController {
     @Param('userId') userId: string,
     @Body() updatePortfolioDto: UpdatePortfolioDto
   ) {
-    this.logger.log(`Admin: Updating portfolio for user: ${userId}`);
     return this.portfolioService.updatePortfolio(userId, updatePortfolioDto);
   }
 
@@ -228,17 +210,6 @@ export class PortfolioController {
   @UseGuards(AdminGuard)
   @Post(':userId/initialize')
   async initializeUserPortfolio(@Param('userId') userId: string) {
-    this.logger.log(`Admin: Initializing portfolio and holdings for user: ${userId}`);
     return this.portfolioService.initializeUserPortfolio(userId);
-  }
-
-  // Private helper method to get current user ID from request
-  private getUserIdFromRequest(request: Request): string {
-    const user = request.user as any;
-    if (!user || !user.userId) {
-      this.logger.error('User not found in request or missing userId');
-      throw ExceptionFactory.unauthorized('User identity not found in request');
-    }
-    return user.userId;
   }
 } 
