@@ -14,6 +14,7 @@ This document provides comprehensive documentation for the FinBud API, covering 
 - [Error Handling](#error-handling)
 - [Getting Started](#getting-started)
 - [Events Module](#events-module)
+- [Chat Module](#chat-module)
 
 ## Base URL
 
@@ -2228,224 +2229,94 @@ To test the portfolio functionality end-to-end, follow these steps:
 
 ## Events Module
 
-The events module provides endpoints for managing financial events and conferences.
+The Events Module provides access to financial events, workshops, and conferences, with functionality to search, filter, and manage events.
+
+### Features
+
+- Search and discover financial events
+- Filter events by date, location, and category
+- Get events near a specific location
+- View events on a calendar or map
+- Create and manage personal events
 
 ### Authentication
 
-All events endpoints require JWT authentication. Make sure to include a valid JWT token in the Authorization header for all requests.
+Some endpoints in the Events Module require JWT authentication. Include your JWT token in the Authorization header:
 
-### Endpoints
+```
+Authorization: Bearer your-jwt-token
+```
+
+### Search and Retrieve Events
 
 #### GET /events
-Get a list of events with optional filtering and pagination.
+
+Get all events with pagination.
 
 **URL**: `/events`
 
 **Method**: `GET`
 
-**Auth required**: Yes (JWT token)
+**Auth required**: No
 
 **Query Parameters**:
 - `page`: Page number (default: 1)
-- `limit`: Number of items per page (default: 10)
-- `name`: Filter by event name
-- `host`: Filter by event host
-- `location`: Filter by event location
-- `sortBy`: Field to sort by (default: date)
-- `sortDirection`: Sort direction (asc/desc, default: asc)
-
-**Example Requests**:
-```
-GET /api/events?page=1&limit=20
-GET /api/events?name=Finance&sortBy=date&sortDirection=desc
-GET /api/events?host=Bloomberg&location=New York
-```
+- `limit`: Items per page (default: 10)
+- `search`: Text to search for in event titles and descriptions
+- `startDate`: Filter events starting from this date (ISO format)
+- `endDate`: Filter events until this date (ISO format)
+- `category`: Filter by event category
 
 **Success Response**:
 - **Code**: 200 OK
 - **Content**:
 ```json
 {
-  "success": true,
-  "data": {
-    "data": [
-      {
-        "_id": "60d21b4967d0d8992e610c85",
-        "name": "Fintech Summit 2023",
-        "date": "2023-09-15T08:00:00.000Z",
-        "host": "Global Finance",
-        "location": "New York City",
-        "price": "Free",
-        "url": "https://example.com/fintech-summit",
-        "image": "https://example.com/images/fintech-summit.jpg",
-        "lat": 40.7128,
-        "lng": -74.006,
-        "formattedDate": "September 15, 2023",
-        "formattedTime": "08:00 AM",
-        "displayDate": "September 15, 2023 at 08:00 AM"
-      }
-    ],
-    "pagination": {
-      "total": 1,
-      "page": 1,
-      "limit": 10,
-      "pages": 1
+  "data": [
+    {
+      "_id": "60d21b4667d0d8992e610c85",
+      "title": "Financial Planning Workshop",
+      "description": "Learn the basics of financial planning and investment strategies",
+      "location": {
+        "address": "123 Main Street, New York, NY",
+        "coordinates": {
+          "latitude": 40.7128,
+          "longitude": -74.0060
+        }
+      },
+      "startDate": "2023-07-15T14:30:00Z",
+      "endDate": "2023-07-15T17:30:00Z",
+      "category": "workshop",
+      "formattedStartDate": "Jul 15, 2023",
+      "formattedEndDate": "Jul 15, 2023"
     }
+  ],
+  "meta": {
+    "total": 1,
+    "page": 1,
+    "limit": 10,
+    "pages": 1
   }
 }
 ```
 
-**Error Response**:
-- **Code**: 401 UNAUTHORIZED
-- **Content**:
-```json
-{
-  "statusCode": 401,
-  "message": "Unauthorized",
-  "error": "Unauthorized"
-}
-```
-
-#### GET /events/map
-Get events with valid coordinates for map display.
-
-**URL**: `/events/map`
-
-**Method**: `GET`
-
-**Auth required**: Yes (JWT token)
-
-**Success Response**:
-- **Code**: 200 OK
-- **Content**:
-```json
-{
-  "data": [
-    {
-      "_id": "60d21b4967d0d8992e610c85",
-      "name": "Fintech Summit 2023",
-      "date": "2023-09-15T08:00:00.000Z",
-      "host": "Global Finance",
-      "location": "New York City",
-      "price": "Free",
-      "url": "https://example.com/fintech-summit",
-      "image": "https://example.com/images/fintech-summit.jpg",
-      "lat": 40.7128,
-      "lng": -74.006,
-      "formattedDate": "September 15, 2023",
-      "formattedTime": "08:00 AM",
-      "displayDate": "September 15, 2023 at 08:00 AM"
-    }
-  ]
-}
-```
-
-#### GET /events/upcoming
-Get upcoming events.
-
-**URL**: `/events/upcoming`
-
-**Method**: `GET`
-
-**Auth required**: Yes (JWT token)
-
-**Query Parameters**:
-- `limit`: Maximum number of events to return (default: 10)
-
-**Example Requests**:
-```
-GET /api/events/upcoming
-GET /api/events/upcoming?limit=5
-```
-
-**Success Response**:
-- **Code**: 200 OK
-- **Content**:
-```json
-{
-  "data": [
-    {
-      "_id": "60d21b4967d0d8992e610c85",
-      "name": "Fintech Summit 2023",
-      "date": "2023-09-15T08:00:00.000Z",
-      "host": "Global Finance",
-      "location": "New York City",
-      "price": "Free",
-      "url": "https://example.com/fintech-summit",
-      "image": "https://example.com/images/fintech-summit.jpg",
-      "lat": 40.7128,
-      "lng": -74.006,
-      "formattedDate": "September 15, 2023",
-      "formattedTime": "08:00 AM",
-      "displayDate": "September 15, 2023 at 08:00 AM"
-    }
-  ],
-  "count": 1
-}
-```
-
-#### GET /events/calendar
-Get events for a specific month and year.
-
-**URL**: `/events/calendar`
-
-**Method**: `GET`
-
-**Auth required**: Yes (JWT token)
-
-**Query Parameters**:
-- `month`: Month number (1-12)
-- `year`: Year (e.g., 2023)
-
-**Example Requests**:
-```
-GET /api/events/calendar?month=9&year=2023
-```
-
-**Success Response**:
-- **Code**: 200 OK
-- **Content**:
-```json
-{
-  "data": [
-    {
-      "_id": "60d21b4967d0d8992e610c85",
-      "name": "Fintech Summit 2023",
-      "date": "2023-09-15T08:00:00.000Z",
-      "host": "Global Finance",
-      "location": "New York City",
-      "price": "Free",
-      "url": "https://example.com/fintech-summit",
-      "image": "https://example.com/images/fintech-summit.jpg",
-      "lat": 40.7128,
-      "lng": -74.006,
-      "formattedDate": "September 15, 2023",
-      "formattedTime": "08:00 AM",
-      "displayDate": "September 15, 2023 at 08:00 AM"
-    }
-  ]
-}
-```
-
 #### GET /events/nearby
+
 Get events near a specific location.
 
 **URL**: `/events/nearby`
 
 **Method**: `GET`
 
-**Auth required**: Yes (JWT token)
+**Auth required**: No
 
 **Query Parameters**:
-- `lat`: Latitude (required)
-- `lng`: Longitude (required)
+- `lat`: Latitude of the location (required)
+- `lng`: Longitude of the location (required)
 - `radius`: Search radius in kilometers (default: 10)
-
-**Example Requests**:
-```
-GET /api/events/nearby?lat=40.7128&lng=-74.006
-GET /api/events/nearby?lat=40.7128&lng=-74.006&radius=25
-```
+- `startDate`: Filter events starting from this date (ISO format)
+- `endDate`: Filter events until this date (ISO format)
+- `category`: Filter by event category
 
 **Success Response**:
 - **Code**: 200 OK
@@ -2454,24 +2325,30 @@ GET /api/events/nearby?lat=40.7128&lng=-74.006&radius=25
 {
   "data": [
     {
-      "_id": "60d21b4967d0d8992e610c85",
-      "name": "Fintech Summit 2023",
-      "date": "2023-09-15T08:00:00.000Z",
-      "host": "Global Finance",
-      "location": "New York City",
-      "price": "Free",
-      "url": "https://example.com/fintech-summit",
-      "image": "https://example.com/images/fintech-summit.jpg",
-      "lat": 40.7128,
-      "lng": -74.006,
-      "distance": 0,
-      "distanceKm": 0,
-      "formattedDate": "September 15, 2023",
-      "formattedTime": "08:00 AM",
-      "displayDate": "September 15, 2023 at 08:00 AM"
+      "_id": "60d21b4667d0d8992e610c85",
+      "title": "Financial Planning Workshop",
+      "description": "Learn the basics of financial planning and investment strategies",
+      "location": {
+        "address": "123 Main Street, New York, NY",
+        "coordinates": {
+          "latitude": 40.7128,
+          "longitude": -74.0060
+        }
+      },
+      "distance": 1.2,
+      "startDate": "2023-07-15T14:30:00Z",
+      "endDate": "2023-07-15T17:30:00Z",
+      "category": "workshop",
+      "formattedStartDate": "Jul 15, 2023",
+      "formattedEndDate": "Jul 15, 2023"
     }
   ],
-  "count": 1
+  "meta": {
+    "total": 1,
+    "page": 1,
+    "limit": 10,
+    "pages": 1
+  }
 }
 ```
 
@@ -2480,47 +2357,130 @@ GET /api/events/nearby?lat=40.7128&lng=-74.006&radius=25
 - **Content**:
 ```json
 {
-  "statusCode": 400,
-  "message": "Missing or invalid coordinates. Both lat and lng parameters are required",
-  "errorCode": "EVENT_INVALID_DATA",
-  "timestamp": "2023-03-23T01:23:45.678Z"
+  "code": "EVENT_INVALID_DATA",
+  "message": "Both lat and lng parameters are required"
 }
 ```
 
+#### GET /events/calendar
+
+Get events formatted for calendar view.
+
+**URL**: `/events/calendar`
+
+**Method**: `GET`
+
+**Auth required**: No
+
+**Query Parameters**:
+- `startDate`: Start date for the calendar range (ISO format)
+- `endDate`: End date for the calendar range (ISO format)
+- `category`: Filter by event category
+
+**Success Response**:
+- **Code**: 200 OK
+- **Content**:
+```json
+[
+  {
+    "_id": "60d21b4667d0d8992e610c85",
+    "title": "Financial Planning Workshop",
+    "start": "2023-07-15T14:30:00Z",
+    "end": "2023-07-15T17:30:00Z",
+    "category": "workshop",
+    "formattedStartDate": "Jul 15, 2023",
+    "formattedEndDate": "Jul 15, 2023"
+  }
+]
+```
+
+#### GET /events/map
+
+Get events formatted for map view.
+
+**URL**: `/events/map`
+
+**Method**: `GET`
+
+**Auth required**: No
+
+**Query Parameters**:
+- `category`: Filter by event category
+- `startDate`: Filter events starting from this date (ISO format)
+- `endDate`: Filter events until this date (ISO format)
+
+**Success Response**:
+- **Code**: 200 OK
+- **Content**:
+```json
+[
+  {
+    "_id": "60d21b4667d0d8992e610c85",
+    "title": "Financial Planning Workshop",
+    "description": "Learn the basics of financial planning and investment strategies",
+    "location": {
+      "coordinates": {
+        "latitude": 40.7128,
+        "longitude": -74.0060
+      },
+      "address": "123 Main Street, New York, NY"
+    },
+    "startDate": "2023-07-15T14:30:00Z",
+    "category": "workshop",
+    "formattedStartDate": "Jul 15, 2023"
+  }
+]
+```
+
+### Managing Events
+
 #### GET /events/:id
-Get a single event by ID.
+
+Get a specific event by ID.
 
 **URL**: `/events/:id`
 
 **Method**: `GET`
 
-**Auth required**: Yes (JWT token)
+**Auth required**: No
 
-**Path Parameters**:
-- `id`: Event ID
+**URL Parameters**: `id=[string]` the ID of the event to retrieve
 
 **Success Response**:
 - **Code**: 200 OK
 - **Content**:
 ```json
 {
-  "_id": "60d21b4967d0d8992e610c85",
-  "name": "Fintech Summit 2023",
-  "date": "2023-09-15T08:00:00.000Z",
-  "host": "Global Finance",
-  "location": "New York City",
-  "price": "Free",
-  "url": "https://example.com/fintech-summit",
-  "image": "https://example.com/images/fintech-summit.jpg",
-  "lat": 40.7128,
-  "lng": -74.006,
-  "formattedDate": "September 15, 2023",
-  "formattedTime": "08:00 AM",
-  "displayDate": "September 15, 2023 at 08:00 AM"
+  "_id": "60d21b4667d0d8992e610c85",
+  "title": "Financial Planning Workshop",
+  "description": "Learn the basics of financial planning and investment strategies",
+  "location": {
+    "address": "123 Main Street, New York, NY",
+    "coordinates": {
+      "latitude": 40.7128,
+      "longitude": -74.0060
+    }
+  },
+  "startDate": "2023-07-15T14:30:00Z",
+  "endDate": "2023-07-15T17:30:00Z",
+  "category": "workshop",
+  "formattedStartDate": "Jul 15, 2023",
+  "formattedEndDate": "Jul 15, 2023"
+}
+```
+
+**Error Response**:
+- **Code**: 404 NOT FOUND
+- **Content**:
+```json
+{
+  "code": "EVENT_NOT_FOUND",
+  "message": "Event not found"
 }
 ```
 
 #### POST /events
+
 Create a new event.
 
 **URL**: `/events`
@@ -2532,64 +2492,20 @@ Create a new event.
 **Request Body**:
 ```json
 {
-  "name": "Fintech Summit 2023",
-  "date": "2023-09-15T08:00:00.000Z",
-  "host": "Global Finance",
-  "location": "New York City",
-  "price": "Free",
-  "url": "https://example.com/fintech-summit",
-  "image": "https://example.com/images/fintech-summit.jpg",
-  "lat": 40.7128,
-  "lng": -74.006
-}
-```
-
-**Success Response**:
-- **Code**: 201 CREATED
-- **Content**:
-```json
-{
-  "_id": "60d21b4967d0d8992e610c85",
-  "name": "Fintech Summit 2023",
-  "date": "2023-09-15T08:00:00.000Z",
-  "host": "Global Finance",
-  "location": "New York City",
-  "price": "Free",
-  "url": "https://example.com/fintech-summit",
-  "image": "https://example.com/images/fintech-summit.jpg",
-  "lat": 40.7128,
-  "lng": -74.006,
-  "formattedDate": "September 15, 2023",
-  "formattedTime": "08:00 AM",
-  "displayDate": "September 15, 2023 at 08:00 AM"
-}
-```
-
-#### POST /events/batch
-Create multiple events at once.
-
-**URL**: `/events/batch`
-
-**Method**: `POST`
-
-**Auth required**: Yes (JWT token)
-
-**Request Body**:
-```json
-{
-  "events": [
-    {
-      "name": "Fintech Summit 2023",
-      "date": "2023-09-15T08:00:00.000Z",
-      "host": "Global Finance",
-      "location": "New York City",
-      "price": "Free",
-      "url": "https://example.com/fintech-summit",
-      "image": "https://example.com/images/fintech-summit.jpg",
-      "lat": 40.7128,
-      "lng": -74.006
+  "title": "Investment Strategies Seminar",
+  "description": "A comprehensive seminar on investment strategies for beginners and experienced investors",
+  "location": {
+    "address": "456 Business Ave, Chicago, IL",
+    "coordinates": {
+      "latitude": 41.8781,
+      "longitude": -87.6298
     }
-  ]
+  },
+  "startDate": "2023-08-20T10:00:00Z",
+  "endDate": "2023-08-20T16:00:00Z",
+  "category": "seminar",
+  "link": "https://example.com/events/investment-seminar",
+  "isPublished": true
 }
 ```
 
@@ -2598,38 +2514,28 @@ Create multiple events at once.
 - **Content**:
 ```json
 {
-  "success": true,
-  "created": 1,
-  "skipped": 0,
-  "failed": 0
-}
-```
-
-#### POST /events/scrape
-Manually trigger the event scraper.
-
-**URL**: `/events/scrape`
-
-**Method**: `POST`
-
-**Auth required**: Yes (JWT token)
-
-**Success Response**:
-- **Code**: 200 OK
-- **Content**:
-```json
-{
-  "success": true,
-  "stats": {
-    "total": 10,
-    "created": 8,
-    "skipped": 2,
-    "failed": 0
-  }
+  "_id": "60d21b4667d0d8992e610c86",
+  "title": "Investment Strategies Seminar",
+  "description": "A comprehensive seminar on investment strategies for beginners and experienced investors",
+  "location": {
+    "address": "456 Business Ave, Chicago, IL",
+    "coordinates": {
+      "latitude": 41.8781,
+      "longitude": -87.6298
+    }
+  },
+  "startDate": "2023-08-20T10:00:00Z",
+  "endDate": "2023-08-20T16:00:00Z",
+  "category": "seminar",
+  "link": "https://example.com/events/investment-seminar",
+  "isPublished": true,
+  "formattedStartDate": "Aug 20, 2023",
+  "formattedEndDate": "Aug 20, 2023"
 }
 ```
 
 #### PUT /events/:id
+
 Update an existing event.
 
 **URL**: `/events/:id`
@@ -2638,14 +2544,24 @@ Update an existing event.
 
 **Auth required**: Yes (JWT token)
 
-**Path Parameters**:
-- `id`: Event ID
+**URL Parameters**: `id=[string]` the ID of the event to update
 
 **Request Body**:
 ```json
 {
-  "name": "Updated Fintech Summit 2023",
-  "price": "Paid"
+  "title": "Updated Investment Strategies Seminar",
+  "description": "An updated comprehensive seminar on investment strategies",
+  "location": {
+    "address": "456 Business Ave, Chicago, IL",
+    "coordinates": {
+      "latitude": 41.8781,
+      "longitude": -87.6298
+    }
+  },
+  "startDate": "2023-08-21T10:00:00Z",
+  "endDate": "2023-08-21T16:00:00Z",
+  "category": "seminar",
+  "isPublished": true
 }
 ```
 
@@ -2654,78 +2570,553 @@ Update an existing event.
 - **Content**:
 ```json
 {
-  "_id": "60d21b4967d0d8992e610c85",
-  "name": "Updated Fintech Summit 2023",
-  "date": "2023-09-15T08:00:00.000Z",
-  "host": "Global Finance",
-  "location": "New York City",
-  "price": "Paid",
-  "url": "https://example.com/fintech-summit",
-  "image": "https://example.com/images/fintech-summit.jpg",
-  "lat": 40.7128,
-  "lng": -74.006,
-  "formattedDate": "September 15, 2023",
-  "formattedTime": "08:00 AM",
-  "displayDate": "September 15, 2023 at 08:00 AM"
+  "_id": "60d21b4667d0d8992e610c86",
+  "title": "Updated Investment Strategies Seminar",
+  "description": "An updated comprehensive seminar on investment strategies",
+  "location": {
+    "address": "456 Business Ave, Chicago, IL",
+    "coordinates": {
+      "latitude": 41.8781,
+      "longitude": -87.6298
+    }
+  },
+  "startDate": "2023-08-21T10:00:00Z",
+  "endDate": "2023-08-21T16:00:00Z",
+  "category": "seminar",
+  "isPublished": true,
+  "formattedStartDate": "Aug 21, 2023",
+  "formattedEndDate": "Aug 21, 2023"
 }
 ```
 
-#### DELETE /events/:id
-Delete an event.
+### Testing the Events Module
 
-**URL**: `/events/:id`
+To test the Events Module as a regular user:
+
+1. **Browse Events**:
+   - Get a list of all events: `GET /events`
+   - Search for specific events: `GET /events?search=finance`
+   - Filter events by date: `GET /events?startDate=2023-06-01T00:00:00Z&endDate=2023-06-30T23:59:59Z`
+   - Filter events by category: `GET /events?category=workshop`
+
+2. **Find Nearby Events**:
+   - Get events near your location: `GET /events/nearby?lat=40.7128&lng=-74.0060`
+   - Specify search radius: `GET /events/nearby?lat=40.7128&lng=-74.0060&radius=5`
+   - Filter nearby events by date: `GET /events/nearby?lat=40.7128&lng=-74.0060&startDate=2023-06-01T00:00:00Z&endDate=2023-06-30T23:59:59Z`
+
+3. **View Events on Calendar or Map**:
+   - Get events for calendar view: `GET /events/calendar?startDate=2023-06-01T00:00:00Z&endDate=2023-06-30T23:59:59Z`
+   - Get events for map view: `GET /events/map`
+
+4. **View Event Details**:
+   - Get details for a specific event: `GET /events/60d21b4667d0d8992e610c85`
+
+5. **Create and Manage Events** (requires authentication):
+   - Create a new event: `POST /events` with event details
+   - Update an existing event: `PUT /events/60d21b4667d0d8992e610c85` with updated details
+
+**Sample Testing Flow**:
+
+1. Get events near a location:
+```bash
+curl -X GET "http://localhost:3000/api/events/nearby?lat=40.7128&lng=-74.0060&radius=5" \
+  -H "Content-Type: application/json"
+```
+
+2. Search for events with a specific keyword:
+```bash
+curl -X GET "http://localhost:3000/api/events?search=investment&page=1&limit=10" \
+  -H "Content-Type: application/json"
+```
+
+3. Get events for a date range:
+```bash
+curl -X GET "http://localhost:3000/api/events/calendar?startDate=2023-06-01T00:00:00Z&endDate=2023-06-30T23:59:59Z" \
+  -H "Content-Type: application/json"
+```
+
+4. Create a new event (requires authentication):
+```bash
+curl -X POST "http://localhost:3000/api/events" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Investment Strategies Seminar",
+    "description": "A comprehensive seminar on investment strategies for beginners and experienced investors",
+    "location": {
+      "address": "456 Business Ave, Chicago, IL",
+      "coordinates": {
+        "latitude": 41.8781,
+        "longitude": -87.6298
+      }
+    },
+    "startDate": "2023-08-20T10:00:00Z",
+    "endDate": "2023-08-20T16:00:00Z",
+    "category": "seminar",
+    "isPublished": true
+  }'
+```
+
+## Chat Module
+
+The Chat Module enables AI-powered conversations and financial advice through an intelligent chat interface. The module handles conversation threads, message history, and integration with AI services.
+
+### Features
+
+- AI-powered financial assistance
+- Conversation threads management
+- Web search integration for up-to-date information
+- Generated follow-up questions
+- Daily stock prediction simulations
+
+### Authentication
+
+All endpoints in the Chat Module require JWT authentication. Include your JWT token in the Authorization header:
+
+```
+Authorization: Bearer your-jwt-token
+```
+
+### Conversation Threads
+
+Threads organize chats into conversations. Users can have multiple threads, each containing a series of messages.
+
+#### GET /threads/me
+
+Get all threads for the current authenticated user.
+
+**URL**: `/threads/me`
+
+**Method**: `GET`
+
+**Auth required**: Yes (JWT token)
+
+**Query Parameters**:
+- `page`: Page number (default: 1)
+- `limit`: Items per page (default: 10)
+
+**Success Response**:
+- **Code**: 200 OK
+- **Content**:
+```json
+{
+  "data": [
+    {
+      "_id": "60d21b4667d0d8992e610c85",
+      "title": "Financial Planning Discussion",
+      "userId": "60d21b4667d0d8992e610c85",
+      "creationDate": "2023-05-15T14:30:00Z"
+    },
+    {
+      "_id": "60d21b4667d0d8992e610c86",
+      "title": "Retirement Planning",
+      "userId": "60d21b4667d0d8992e610c85",
+      "creationDate": "2023-05-16T10:15:00Z"
+    }
+  ],
+  "meta": {
+    "total": 2,
+    "page": 1,
+    "limit": 10,
+    "pages": 1
+  }
+}
+```
+
+#### POST /threads
+
+Create a new thread.
+
+**URL**: `/threads`
+
+**Method**: `POST`
+
+**Auth required**: Yes (JWT token)
+
+**Request Body**:
+```json
+{
+  "userId": "60d21b4667d0d8992e610c85",
+  "title": "Investment Advice"
+}
+```
+
+**Success Response**:
+- **Code**: 201 CREATED
+- **Content**:
+```json
+{
+  "_id": "60d21b4667d0d8992e610c87",
+  "userId": "60d21b4667d0d8992e610c85",
+  "title": "Investment Advice",
+  "creationDate": "2023-06-01T09:45:00Z"
+}
+```
+
+#### GET /threads/:id
+
+Retrieve a specific thread.
+
+**URL**: `/threads/:id`
+
+**Method**: `GET`
+
+**Auth required**: Yes (JWT token)
+
+**URL Parameters**: `id=[string]` the ID of the thread to retrieve
+
+**Success Response**:
+- **Code**: 200 OK
+- **Content**:
+```json
+{
+  "_id": "60d21b4667d0d8992e610c85",
+  "title": "Financial Planning Discussion",
+  "userId": "60d21b4667d0d8992e610c85",
+  "creationDate": "2023-05-15T14:30:00Z"
+}
+```
+
+**Error Response**:
+- **Code**: 404 NOT FOUND
+- **Content**:
+```json
+{
+  "code": "THREAD_NOT_FOUND",
+  "message": "Thread not found"
+}
+```
+
+#### PUT /threads/:id
+
+Update a thread's title.
+
+**URL**: `/threads/:id`
+
+**Method**: `PUT`
+
+**Auth required**: Yes (JWT token)
+
+**URL Parameters**: `id=[string]` the ID of the thread to update
+
+**Request Body**:
+```json
+{
+  "title": "Updated Financial Planning Discussion"
+}
+```
+
+**Success Response**:
+- **Code**: 200 OK
+- **Content**:
+```json
+{
+  "_id": "60d21b4667d0d8992e610c85",
+  "title": "Updated Financial Planning Discussion",
+  "userId": "60d21b4667d0d8992e610c85",
+  "creationDate": "2023-05-15T14:30:00Z"
+}
+```
+
+**Error Response**:
+- **Code**: 404 NOT FOUND
+
+#### DELETE /threads/:id
+
+Delete a thread and all its associated chat messages.
+
+**URL**: `/threads/:id`
 
 **Method**: `DELETE`
 
 **Auth required**: Yes (JWT token)
 
-**Path Parameters**:
-- `id`: Event ID
+**URL Parameters**: `id=[string]` the ID of the thread to delete
+
+**Success Response**:
+- **Code**: 204 NO CONTENT
+
+**Error Response**:
+- **Code**: 404 NOT FOUND
+
+### Chat Messages
+
+Chat messages are individual exchanges within a thread.
+
+#### POST /chats/query
+
+Send a query to the AI assistant and receive a response.
+
+**URL**: `/chats/query`
+
+**Method**: `POST`
+
+**Auth required**: Yes (JWT token)
+
+**Request Body**:
+```json
+{
+  "prompt": "What are some good strategies for retirement planning?",
+  "returnSources": true,
+  "numberOfPagesToScan": 4,
+  "returnFollowUpQuestions": true,
+  "threadId": "60d21b4667d0d8992e610c85"  // Optional, if omitted a new thread will be created
+}
+```
 
 **Success Response**:
 - **Code**: 200 OK
 - **Content**:
 ```json
 {
-  "deleted": true
+  "answer": "Retirement planning involves creating a comprehensive strategy to ensure financial security during your retirement years. Here are some effective strategies: 1) Start early to leverage compound interest, 2) Maximize employer-matched contributions to retirement accounts, 3) Diversify your investment portfolio, 4) Consider tax-advantaged accounts like IRAs and 401(k)s, 5) Regularly review and adjust your plan as you approach retirement age.",
+  "sources": [
+    {
+      "title": "Retirement Planning: A Comprehensive Guide",
+      "link": "https://example.com/retirement-planning",
+      "snippet": "An overview of retirement planning strategies...",
+      "favicon": "https://example.com/favicon.ico",
+      "host": "example.com"
+    }
+  ],
+  "followUpQuestions": [
+    "What is the difference between a traditional IRA and a Roth IRA?",
+    "How much should I be saving each month for retirement?",
+    "When is the best time to start taking Social Security benefits?"
+  ],
+  "chatId": "60d21b4667d0d8992e610c88",
+  "threadId": "60d21b4667d0d8992e610c85"
 }
 ```
 
-### Event Scraping
-
-The application includes a scraper service that automatically collects financial events from various sources:
-
-- **Bloomberg Events**: Financial conferences, summits, and other events hosted by Bloomberg
-- **10Times**: A platform that aggregates business and finance conferences
-- **Yahoo Finance**: Financial events and shareholder meetings
-
-#### Automatic Scraping
-
-Events are automatically scraped daily at midnight using a scheduled cron job. No manual intervention is required.
-
-#### Manual Scraping
-
-You can also trigger the scraper manually via the API (requires authentication):
-
-```http
-POST /events/scrape
-```
-
-Response:
+**Error Response**:
+- **Code**: 400 BAD REQUEST
+- **Content**:
 ```json
 {
-  "success": true,
-  "stats": {
-    "total": 10,
-    "created": 8,
-    "skipped": 2,
-    "failed": 0
+  "code": "AI_SERVICE_ERROR",
+  "message": "Failed to process query"
+}
+```
+
+#### GET /chats/thread/:threadId
+
+Get all chat messages in a specific thread.
+
+**URL**: `/chats/thread/:threadId`
+
+**Method**: `GET`
+
+**Auth required**: Yes (JWT token)
+
+**URL Parameters**: `threadId=[string]` the ID of the thread
+
+**Success Response**:
+- **Code**: 200 OK
+- **Content**:
+```json
+[
+  {
+    "_id": "60d21b4667d0d8992e610c88",
+    "prompt": "What are some good strategies for retirement planning?",
+    "response": ["Retirement planning involves creating a comprehensive strategy..."],
+    "sources": [
+      {
+        "title": "Retirement Planning: A Comprehensive Guide",
+        "link": "https://example.com/retirement-planning",
+        "snippet": "An overview of retirement planning strategies..."
+      }
+    ],
+    "followUpQuestions": [
+      "What is the difference between a traditional IRA and a Roth IRA?",
+      "How much should I be saving each month for retirement?",
+      "When is the best time to start taking Social Security benefits?"
+    ],
+    "threadId": "60d21b4667d0d8992e610c85",
+    "creationDate": "2023-05-15T14:35:00Z"
+  }
+]
+```
+
+**Error Response**:
+- **Code**: 404 NOT FOUND
+- **Content**:
+```json
+{
+  "code": "THREAD_NOT_FOUND",
+  "message": "Thread not found"
+}
+```
+
+### Stock Chat Simulation
+
+FinBud offers a stock prediction simulation feature where users can get AI-generated predictions on stock market trends.
+
+#### POST /chat-stock/update-response
+
+Create or update a stock prediction response.
+
+**URL**: `/chat-stock/update-response`
+
+**Method**: `POST`
+
+**Auth required**: Yes (JWT token)
+
+**Request Body**:
+```json
+{
+  "userId": "60d21b4667d0d8992e610c85",
+  "prompt": "What will happen to Tesla stock this week?",
+  "response": "Based on current market trends and recent company announcements, Tesla stock might see moderate volatility this week. The upcoming earnings report and production numbers could create short-term price fluctuations. However, always remember that stock predictions are speculative and actual performance depends on numerous factors."
+}
+```
+
+**Success Response**:
+- **Code**: 201 CREATED
+- **Content**:
+```json
+{
+  "_id": "60d21b4667d0d8992e610c89",
+  "userId": "60d21b4667d0d8992e610c85",
+  "prompt": "What will happen to Tesla stock this week?",
+  "response": "Based on current market trends and recent company announcements, Tesla stock might see moderate volatility this week...",
+  "createdAt": "2023-06-01T09:45:00Z"
+}
+```
+
+#### GET /chat-stock/responses/me
+
+Get all stock chat responses for the current user.
+
+**URL**: `/chat-stock/responses/me`
+
+**Method**: `GET`
+
+**Auth required**: Yes (JWT token)
+
+**Query Parameters**:
+- `page`: Page number (default: 1)
+- `limit`: Items per page (default: 15)
+
+**Success Response**:
+- **Code**: 200 OK
+- **Content**:
+```json
+{
+  "data": [
+    {
+      "_id": "60d21b4667d0d8992e610c89",
+      "userId": "60d21b4667d0d8992e610c85",
+      "prompt": "What will happen to Tesla stock this week?",
+      "response": "Based on current market trends and recent company announcements, Tesla stock might see moderate volatility this week...",
+      "createdAt": "2023-06-01T09:45:00Z"
+    }
+  ],
+  "meta": {
+    "total": 1,
+    "page": 1,
+    "limit": 15,
+    "pages": 1
   }
 }
 ```
 
-The response includes statistics on how many events were processed:
-- `total`: Total number of events scraped
-- `created`: Number of new events successfully added to the database
-- `skipped`: Number of duplicate events (already in the database)
-- `failed`: Number of events that couldn't be added due to validation or other errors 
+#### GET /chat-stock/responses/today/me
+
+Get today's stock chat response for the current user.
+
+**URL**: `/chat-stock/responses/today/me`
+
+**Method**: `GET`
+
+**Auth required**: Yes (JWT token)
+
+**Success Response**:
+- **Code**: 200 OK
+- **Content**:
+```json
+{
+  "_id": "60d21b4667d0d8992e610c89",
+  "userId": "60d21b4667d0d8992e610c85",
+  "prompt": "What will happen to Tesla stock this week?",
+  "response": "Based on current market trends and recent company announcements, Tesla stock might see moderate volatility this week...",
+  "createdAt": "2023-06-01T09:45:00Z"
+}
+```
+
+**Success Response (if no response today)**:
+- **Code**: 200 OK
+- **Content**: `null`
+
+### Testing the Chat Module
+
+To test the Chat Module as a regular user:
+
+1. **Authentication**:
+   - First, register or log in using the authentication endpoints.
+   - Save the JWT token from the response.
+   - Include this token in all subsequent requests as an Authorization header.
+
+2. **Starting a Conversation**:
+   - Send a query using `POST /chats/query` without providing a threadId.
+   - The system will create a new thread and return its ID along with the AI response.
+   - Save this threadId for continuing the conversation.
+
+3. **Continuing a Conversation**:
+   - To continue the same conversation, send another query using `POST /chats/query` and include the saved threadId.
+   - The system will add this as a new message in the existing thread.
+   - You can view all messages in the thread using `GET /chats/thread/:threadId`.
+
+4. **Managing Threads**:
+   - View all your conversation threads using `GET /threads/me`.
+   - Rename a thread using `PUT /threads/:id`.
+   - Delete a thread using `DELETE /threads/:id`.
+
+5. **Testing Stock Predictions**:
+   - Create a stock prediction response using `POST /chat-stock/update-response`.
+   - View today's response using `GET /chat-stock/responses/today/me`.
+   - View all your past responses using `GET /chat-stock/responses/me`.
+
+**Sample Testing Flow**:
+
+1. Login and get token:
+```bash
+curl -X POST http://localhost:3000/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username": "user@example.com", "password": "securePassword123"}'
+```
+
+2. Ask a financial question:
+```bash
+curl -X POST http://localhost:3000/api/chats/query \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "prompt": "How can I start investing with a small budget?",
+    "returnSources": true,
+    "returnFollowUpQuestions": true
+  }'
+```
+
+3. Continue the conversation using the returned threadId:
+```bash
+curl -X POST http://localhost:3000/api/chats/query \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "prompt": "What are index funds?",
+    "threadId": "THREAD_ID_FROM_PREVIOUS_RESPONSE"
+  }'
+```
+
+4. View all messages in the thread:
+```bash
+curl -X GET http://localhost:3000/api/chats/thread/THREAD_ID_FROM_PREVIOUS_RESPONSE \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+5. Get today's stock prediction:
+```bash
+curl -X GET http://localhost:3000/api/chat-stock/responses/today/me \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
