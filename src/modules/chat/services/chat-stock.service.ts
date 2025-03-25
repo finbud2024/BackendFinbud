@@ -16,7 +16,7 @@ export class ChatStockService {
   async createForUser(userId: string, createDto: Partial<CreateChatStockDto>) {
     // Validate required fields
     if (!createDto.prompt) {
-      throw ExceptionFactory.invalidInput('prompt field is required');
+      throw ExceptionFactory.chatPromptRequired();
     }
     
     const completeDto: CreateChatStockDto = {

@@ -979,7 +979,6 @@ Deletes a specific goal (admin access).
 
 **Error Response**:
 - **Code**: 404 NOT FOUND
-- **Content**: Error message indicating the goal was not found
 
 #### Delete All Goals for a User
 
@@ -2681,6 +2680,35 @@ Authorization: Bearer your-jwt-token
 
 Threads organize chats into conversations. Users can have multiple threads, each containing a series of messages.
 
+#### POST /threads/me
+
+Create a new thread for the current user.
+
+**URL**: `/threads/me`
+
+**Method**: `POST`
+
+**Auth required**: Yes (JWT token)
+
+**Request Body**:
+```json
+{
+  "title": "Investment Advice"
+}
+```
+
+**Success Response**:
+- **Code**: 201 CREATED
+- **Content**:
+```json
+{
+  "_id": "60d21b4667d0d8992e610c87",
+  "userId": "60d21b4667d0d8992e610c85",
+  "title": "Investment Advice",
+  "creationDate": "2023-06-01T09:45:00Z"
+}
+```
+
 #### GET /threads/me
 
 Get all threads for the current authenticated user.
@@ -2720,35 +2748,6 @@ Get all threads for the current authenticated user.
     "limit": 10,
     "pages": 1
   }
-}
-```
-
-#### POST /threads/me
-
-Create a new thread for the current user.
-
-**URL**: `/threads/me`
-
-**Method**: `POST`
-
-**Auth required**: Yes (JWT token)
-
-**Request Body**:
-```json
-{
-  "title": "Investment Advice"
-}
-```
-
-**Success Response**:
-- **Code**: 201 CREATED
-- **Content**:
-```json
-{
-  "_id": "60d21b4667d0d8992e610c87",
-  "userId": "60d21b4667d0d8992e610c85",
-  "title": "Investment Advice",
-  "creationDate": "2023-06-01T09:45:00Z"
 }
 ```
 
@@ -2951,11 +2950,11 @@ Get all chat messages in a specific thread.
 
 FinBud offers a stock prediction simulation feature where users can get AI-generated predictions on stock market trends.
 
-#### POST /chat-stock/update-response
+#### POST /chat-stock/responses/me
 
-Create or update a stock prediction response.
+Create or update a stock prediction response for the current user.
 
-**URL**: `/chat-stock/update-response`
+**URL**: `/chat-stock/responses/me`
 
 **Method**: `POST`
 
@@ -2964,7 +2963,6 @@ Create or update a stock prediction response.
 **Request Body**:
 ```json
 {
-  "userId": "60d21b4667d0d8992e610c85",
   "prompt": "What will happen to Tesla stock this week?",
   "response": "Based on current market trends and recent company announcements, Tesla stock might see moderate volatility this week. The upcoming earnings report and production numbers could create short-term price fluctuations. However, always remember that stock predictions are speculative and actual performance depends on numerous factors."
 }
@@ -2982,6 +2980,33 @@ Create or update a stock prediction response.
   "createdAt": "2023-06-01T09:45:00Z"
 }
 ```
+
+#### GET /chat-stock/responses/today/me
+
+Get today's stock chat response for the current user.
+
+**URL**: `/chat-stock/responses/today/me`
+
+**Method**: `GET`
+
+**Auth required**: Yes (JWT token)
+
+**Success Response**:
+- **Code**: 200 OK
+- **Content**:
+```json
+{
+  "_id": "60d21b4667d0d8992e610c89",
+  "userId": "60d21b4667d0d8992e610c85",
+  "prompt": "What will happen to Tesla stock this week?",
+  "response": "Based on current market trends and recent company announcements, Tesla stock might see moderate volatility this week...",
+  "createdAt": "2023-06-01T09:45:00Z"
+}
+```
+
+**Success Response (if no response today)**:
+- **Code**: 200 OK
+- **Content**: `null`
 
 #### GET /chat-stock/responses/me
 
@@ -3020,61 +3045,31 @@ Get all stock chat responses for the current user.
 }
 ```
 
-#### GET /chat-stock/responses/today/me
-
-Get today's stock chat response for the current user.
-
-**URL**: `/chat-stock/responses/today/me`
-
-**Method**: `GET`
-
-**Auth required**: Yes (JWT token)
-
-**Success Response**:
-- **Code**: 200 OK
-- **Content**:
-```json
-{
-  "_id": "60d21b4667d0d8992e610c89",
-  "userId": "60d21b4667d0d8992e610c85",
-  "prompt": "What will happen to Tesla stock this week?",
-  "response": "Based on current market trends and recent company announcements, Tesla stock might see moderate volatility this week...",
-  "createdAt": "2023-06-01T09:45:00Z"
-}
-```
-
-**Success Response (if no response today)**:
-- **Code**: 200 OK
-- **Content**: `null`
-
 ### Testing the Chat Module
 
-To test the Chat Module as a regular user:
+To test the Chat Module as a regular user, follow this sequence:
 
 1. **Authentication**:
    - First, register or log in using the authentication endpoints.
    - Save the JWT token from the response.
    - Include this token in all subsequent requests as an Authorization header.
 
-2. **Starting a Conversation**:
-   - Send a query using `POST /chats/query` without providing a threadId.
-   - The system will create a new thread and return its ID along with the AI response.
-   - Save this threadId for continuing the conversation.
+2. **Creating and Managing Threads**:
+   - Create a new conversation thread using `POST /threads/me`
+   - Save the returned thread ID for later use
+   - You can view your threads using `GET /threads/me`
+   - Rename a thread using `PUT /threads/:id` if needed
 
-3. **Continuing a Conversation**:
-   - To continue the same conversation, send another query using `POST /chats/query` and include the saved threadId.
-   - The system will add this as a new message in the existing thread.
-   - You can view all messages in the thread using `GET /chats/thread/:threadId`.
+3. **Asking Questions and Getting Responses**:
+   - Send your first query using `POST /chats/query` and include the thread ID
+   - The system will add your message to the thread and return the AI response
+   - Continue the conversation by sending more queries with the same thread ID
+   - You can view all messages in the thread using `GET /chats/thread/:threadId`
 
-4. **Managing Threads**:
-   - View all your conversation threads using `GET /threads/me`.
-   - Rename a thread using `PUT /threads/:id`.
-   - Delete a thread using `DELETE /threads/:id`.
-
-5. **Testing Stock Predictions**:
-   - Create a stock prediction response using `POST /chat-stock/update-response`.
-   - View today's response using `GET /chat-stock/responses/today/me`.
-   - View all your past responses using `GET /chat-stock/responses/me`.
+4. **Testing Stock Predictions**:
+   - Create a stock prediction using `POST /chat-stock/responses/me`
+   - View today's prediction using `GET /chat-stock/responses/today/me`
+   - View all your past predictions using `GET /chat-stock/responses/me`
 
 **Sample Testing Flow**:
 
@@ -3085,7 +3080,17 @@ curl -X POST http://localhost:3000/api/auth/login \
   -d '{"username": "user@example.com", "password": "securePassword123"}'
 ```
 
-2. Ask a financial question:
+2. Create a new thread:
+```bash
+curl -X POST http://localhost:3000/api/threads/me \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "My Financial Planning"
+  }'
+```
+
+3. Ask a financial question using the thread ID:
 ```bash
 curl -X POST http://localhost:3000/api/chats/query \
   -H "Authorization: Bearer YOUR_TOKEN" \
@@ -3093,11 +3098,12 @@ curl -X POST http://localhost:3000/api/chats/query \
   -d '{
     "prompt": "How can I start investing with a small budget?",
     "returnSources": true,
-    "returnFollowUpQuestions": true
+    "returnFollowUpQuestions": true,
+    "threadId": "THREAD_ID_FROM_PREVIOUS_RESPONSE"
   }'
 ```
 
-3. Continue the conversation using the returned threadId:
+4. Continue the conversation:
 ```bash
 curl -X POST http://localhost:3000/api/chats/query \
   -H "Authorization: Bearer YOUR_TOKEN" \
@@ -3108,45 +3114,25 @@ curl -X POST http://localhost:3000/api/chats/query \
   }'
 ```
 
-4. View all messages in the thread:
+5. View all messages in the thread:
 ```bash
 curl -X GET http://localhost:3000/api/chats/thread/THREAD_ID_FROM_PREVIOUS_RESPONSE \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
-5. Get today's stock prediction:
+6. Create a stock prediction:
+```bash
+curl -X POST http://localhost:3000/api/chat-stock/responses/me \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "prompt": "What will happen to Tesla stock this week?",
+    "response": "Based on current market trends, Tesla stock might see moderate volatility this week."
+  }'
+```
+
+7. Get today's stock prediction:
 ```bash
 curl -X GET http://localhost:3000/api/chat-stock/responses/today/me \
   -H "Authorization: Bearer YOUR_TOKEN"
-```
-
-#### POST /chat-stock/responses/me
-
-Create or update a stock prediction response for the current user.
-
-**URL**: `/chat-stock/responses/me`
-
-**Method**: `POST`
-
-**Auth required**: Yes (JWT token)
-
-**Request Body**:
-```json
-{
-  "prompt": "What will happen to Tesla stock this week?",
-  "response": "Based on current market trends and recent company announcements, Tesla stock might see moderate volatility this week. The upcoming earnings report and production numbers could create short-term price fluctuations. However, always remember that stock predictions are speculative and actual performance depends on numerous factors."
-}
-```
-
-**Success Response**:
-- **Code**: 201 CREATED
-- **Content**:
-```json
-{
-  "_id": "60d21b4667d0d8992e610c89",
-  "userId": "60d21b4667d0d8992e610c85",
-  "prompt": "What will happen to Tesla stock this week?",
-  "response": "Based on current market trends and recent company announcements, Tesla stock might see moderate volatility this week...",
-  "createdAt": "2023-06-01T09:45:00Z"
-}
 ```
