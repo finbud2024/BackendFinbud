@@ -17,6 +17,7 @@ import { StocksModule } from './modules/stocks/stocks.module';
 import { PortfolioModule } from './modules/portfolio/portfolio.module';
 import { CryptoModule } from './modules/crypto/crypto.module';
 import { EventsModule } from './modules/events/events.module';
+import { ChatModule } from './modules/chat/chat.module';
 
 // Config
 import { getMongoConfig } from './config/database/mongoose.config';
@@ -45,6 +46,7 @@ import { getMongoConfig } from './config/database/mongoose.config';
     CryptoModule,
     EventsModule,
     ScheduleModule.forRoot(),
+    ChatModule,
   ],
   controllers: [AppController],
   providers: [

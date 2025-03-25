@@ -1,4 +1,4 @@
-import { HttpException, HttpStatus } from '@nestjs/common';
+import { HttpException, HttpStatus, BadRequestException } from '@nestjs/common';
 
 // Error codes enum
 export enum ErrorCode {
@@ -54,7 +54,29 @@ export enum ErrorCode {
   EVENT_LOCATION_INVALID = 'EVENT_LOCATION_INVALID',
   EVENT_DATE_INVALID = 'EVENT_DATE_INVALID',
   EVENT_SCRAPER_ERROR = 'EVENT_SCRAPER_ERROR',
-  EVENT_VALIDATION_ERROR = 'EVENT_VALIDATION_ERROR'
+  EVENT_VALIDATION_ERROR = 'EVENT_VALIDATION_ERROR',
+
+  // Chat errors
+  CHAT_NOT_FOUND = 'CHAT_NOT_FOUND',
+  CHAT_CREATE_FAILED = 'CHAT_CREATE_FAILED',
+  CHAT_UPDATE_FAILED = 'CHAT_UPDATE_FAILED',
+  CHAT_DELETE_FAILED = 'CHAT_DELETE_FAILED',
+  CHAT_INVALID_DATA = 'CHAT_INVALID_DATA',
+  CHAT_PROMPT_REQUIRED = 'CHAT_PROMPT_REQUIRED',
+  CHAT_RESPONSE_REQUIRED = 'CHAT_RESPONSE_REQUIRED',
+  THREAD_NOT_FOUND = 'THREAD_NOT_FOUND',
+  THREAD_CREATE_FAILED = 'THREAD_CREATE_FAILED',
+  THREAD_UPDATE_FAILED = 'THREAD_UPDATE_FAILED',
+  THREAD_DELETE_FAILED = 'THREAD_DELETE_FAILED',
+  THREAD_INVALID_DATA = 'THREAD_INVALID_DATA',
+  THREAD_USER_REQUIRED = 'THREAD_USER_REQUIRED',
+  CHAT_STOCK_NOT_FOUND = 'CHAT_STOCK_NOT_FOUND',
+  CHAT_STOCK_CREATE_FAILED = 'CHAT_STOCK_CREATE_FAILED',
+  CHAT_STOCK_UPDATE_FAILED = 'CHAT_STOCK_UPDATE_FAILED',
+  CHAT_STOCK_DELETE_FAILED = 'CHAT_STOCK_DELETE_FAILED',
+  AI_SERVICE_ERROR = 'AI_SERVICE_ERROR',
+  SEARCH_SERVICE_ERROR = 'SEARCH_SERVICE_ERROR',
+  FOLLOW_UP_SERVICE_ERROR = 'FOLLOW_UP_SERVICE_ERROR'
 }
 
 export class AppException extends HttpException {
@@ -309,5 +331,151 @@ export class ExceptionFactory {
       ErrorCode.EVENT_SCRAPER_ERROR,
       details
     );
+  }
+
+  // Chat exceptions
+  static chatNotFound() {
+    return new BadRequestException({
+      code: 'CHAT_NOT_FOUND',
+      message: 'Chat not found',
+    });
+  }
+  
+  static chatCreateFailed(message = 'Failed to create chat'): AppException {
+    return new AppException(message, HttpStatus.BAD_REQUEST, ErrorCode.CHAT_CREATE_FAILED);
+  }
+  
+  static chatUpdateFailed(id: string, message = 'Failed to update chat'): AppException {
+    return new AppException(`Failed to update chat with ID ${id}: ${message}`, HttpStatus.BAD_REQUEST, ErrorCode.CHAT_UPDATE_FAILED);
+  }
+  
+  static chatDeleteFailed(id: string, message = 'Failed to delete chat'): AppException {
+    return new AppException(`Failed to delete chat with ID ${id}: ${message}`, HttpStatus.BAD_REQUEST, ErrorCode.CHAT_DELETE_FAILED);
+  }
+  
+  static chatInvalidData(field?: string): AppException {
+    const message = field 
+      ? `Invalid chat data: ${field}` 
+      : 'Invalid chat data';
+    return new AppException(message, HttpStatus.BAD_REQUEST, ErrorCode.CHAT_INVALID_DATA);
+  }
+  
+  static chatPromptRequired(): AppException {
+    return new AppException(
+      'Chat prompt is required', 
+      HttpStatus.BAD_REQUEST, 
+      ErrorCode.CHAT_PROMPT_REQUIRED
+    );
+  }
+  
+  static chatResponseRequired(): AppException {
+    return new AppException(
+      'Chat response is required', 
+      HttpStatus.BAD_REQUEST, 
+      ErrorCode.CHAT_RESPONSE_REQUIRED
+    );
+  }
+
+  // Thread exceptions
+  static threadNotFound() {
+    return new BadRequestException({
+      code: 'THREAD_NOT_FOUND',
+      message: 'Thread not found',
+    });
+  }
+  
+  static threadCreateFailed(message = 'Failed to create thread'): AppException {
+    return new AppException(message, HttpStatus.BAD_REQUEST, ErrorCode.THREAD_CREATE_FAILED);
+  }
+  
+  static threadUpdateFailed(id: string, message = 'Failed to update thread'): AppException {
+    return new AppException(`Failed to update thread with ID ${id}: ${message}`, HttpStatus.BAD_REQUEST, ErrorCode.THREAD_UPDATE_FAILED);
+  }
+  
+  static threadDeleteFailed(id: string, message = 'Failed to delete thread'): AppException {
+    return new AppException(`Failed to delete thread with ID ${id}: ${message}`, HttpStatus.BAD_REQUEST, ErrorCode.THREAD_DELETE_FAILED);
+  }
+  
+  static threadInvalidData(field?: string): AppException {
+    const message = field 
+      ? `Invalid thread data: ${field}` 
+      : 'Invalid thread data';
+    return new AppException(message, HttpStatus.BAD_REQUEST, ErrorCode.THREAD_INVALID_DATA);
+  }
+  
+  static threadUserRequired(): AppException {
+    return new AppException(
+      'User ID is required for thread', 
+      HttpStatus.BAD_REQUEST, 
+      ErrorCode.THREAD_USER_REQUIRED
+    );
+  }
+
+  // ChatStock exceptions
+  static chatStockNotFound(id?: string): AppException {
+    const message = id 
+      ? `Chat stock simulation with ID ${id} not found` 
+      : 'Chat stock simulation not found';
+    return new AppException(message, HttpStatus.NOT_FOUND, ErrorCode.CHAT_STOCK_NOT_FOUND);
+  }
+  
+  static chatStockCreateFailed(message = 'Failed to create chat stock simulation'): AppException {
+    return new AppException(message, HttpStatus.BAD_REQUEST, ErrorCode.CHAT_STOCK_CREATE_FAILED);
+  }
+  
+  static chatStockUpdateFailed(id: string, message = 'Failed to update chat stock simulation'): AppException {
+    return new AppException(`Failed to update chat stock simulation with ID ${id}: ${message}`, HttpStatus.BAD_REQUEST, ErrorCode.CHAT_STOCK_UPDATE_FAILED);
+  }
+  
+  static chatStockDeleteFailed(id: string, message = 'Failed to delete chat stock simulation'): AppException {
+    return new AppException(`Failed to delete chat stock simulation with ID ${id}: ${message}`, HttpStatus.BAD_REQUEST, ErrorCode.CHAT_STOCK_DELETE_FAILED);
+  }
+
+  // AI Service exceptions
+  static aiServiceError(message: string = 'AI service error') {
+    return new BadRequestException({
+      code: 'AI_SERVICE_ERROR',
+      message,
+    });
+  }
+  
+  static searchServiceError(message: string, details?: any): AppException {
+    return new AppException(
+      `Search service error: ${message}`, 
+      HttpStatus.SERVICE_UNAVAILABLE, 
+      ErrorCode.SEARCH_SERVICE_ERROR,
+      details
+    );
+  }
+  
+  static followUpServiceError(message: string, details?: any): AppException {
+    return new AppException(
+      `Follow-up generation error: ${message}`, 
+      HttpStatus.INTERNAL_SERVER_ERROR, 
+      ErrorCode.FOLLOW_UP_SERVICE_ERROR,
+      details
+    );
+  }
+
+  // Chat module additional exceptions
+  static threadNotFoundSimple() {
+    return new BadRequestException({
+      code: 'THREAD_NOT_FOUND',
+      message: 'Thread not found',
+    });
+  }
+
+  static chatNotFoundSimple() {
+    return new BadRequestException({
+      code: 'CHAT_NOT_FOUND',
+      message: 'Chat not found',
+    });
+  }
+
+  static aiServiceErrorSimple(message: string = 'AI service error') {
+    return new BadRequestException({
+      code: 'AI_SERVICE_ERROR',
+      message,
+    });
   }
 } 
