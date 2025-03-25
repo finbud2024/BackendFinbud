@@ -4,7 +4,8 @@ import { Post } from '../entities/post.entity';
 import { Model, Types } from 'mongoose';
 import { CreatePostDto } from '../dto/create-post.dto';
 import { CreateCommentDto } from '../dto/create-comment.dto';
-import { LikeDto } from '../dto/like.dto';
+import { LikePostDto } from '../dto/like.dto';
+  import { LikeCommentDto } from '../dto/like.dto';
 
 @Injectable()
 export class PostService {
@@ -12,6 +13,10 @@ export class PostService {
     @InjectModel(Post.name) private readonly postModel: Model<Post>
   ) {}
 
+  async getAllPosts(): Promise<Post[]> {
+    return this.postModel.find().populate('forumId authorId').exec();
+  }
+  
   async createPost(dto: CreatePostDto): Promise<Post> {
     const newPost = new this.postModel({
       forumId: new Types.ObjectId(dto.forumId),
@@ -35,24 +40,49 @@ export class PostService {
     return post;
   }
 
-  async likePost(postId: string, dto: LikeDto): Promise<Post> {
+  async likePost(postId: string, dto: LikePostDto) {
     const post = await this.postModel.findById(postId);
     if (!post) throw new NotFoundException('Post not found');
-
-    const userId = new Types.ObjectId(dto.userId);
-    const likedUsers = post.reactions.likedUsers || [];
-
-    const alreadyLiked = likedUsers.some(id => id.equals(userId));
-
-    if (dto.action === 'like' && !alreadyLiked) {
+  
+    post.reactions = post.reactions || { likes: 0, likedUsers: [] };
+  
+    const userObjectId = new Types.ObjectId(dto.userId);
+    const userIndex = post.reactions.likedUsers.findIndex(id => id.equals(userObjectId));
+    if (dto.action === 'like' && userIndex === -1) {
       post.reactions.likes += 1;
-      likedUsers.push(userId);
-    } else if (dto.action === 'unlike' && alreadyLiked) {
+      post.reactions.likedUsers.push(userObjectId);
+    } else if (dto.action === 'unlike' && userIndex !== -1) {
       post.reactions.likes -= 1;
-      post.reactions.likedUsers = likedUsers.filter(id => !id.equals(userId));
+      post.reactions.likedUsers.splice(userIndex, 1);
     }
-
-    return await post.save();
+  
+    await post.save();
+    return { success: true, likes: post.reactions.likes };
+  }
+  
+  async likeComment(postId: string, dto: LikeCommentDto) {
+    const post = await this.postModel.findById(postId);
+    if (!post) throw new NotFoundException('Post not found');
+  
+    const comment = post.comments.find(
+        c => c._id && c._id.toString() === dto.commentId
+      );
+    if (!comment) throw new NotFoundException('Comment not found');
+  
+    comment.reactions = comment.reactions || { likes: 0, likedUsers: [] };
+  
+    const userObjectId = new Types.ObjectId(dto.userId);
+    const userIndex = comment.reactions.likedUsers.findIndex(id => id.equals(userObjectId));
+    if (dto.action === 'like' && userIndex === -1) {
+      comment.reactions.likes += 1;
+      comment.reactions.likedUsers.push(userObjectId);
+    } else if (dto.action === 'unlike' && userIndex !== -1) {
+      comment.reactions.likes -= 1;
+      comment.reactions.likedUsers.splice(userIndex, 1);
+    }
+  
+    await post.save();
+    return { success: true, likes: comment.reactions.likes };
   }
 
   async addComment(dto: CreateCommentDto) {

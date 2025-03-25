@@ -1,8 +1,11 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 
-@Schema({ _id: false }) 
+@Schema({ _id: true })
 export class Comment {
+  @Prop({ type: Types.ObjectId })
+  _id?: Types.ObjectId; 
+
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
   authorId: Types.ObjectId;
 
@@ -15,9 +18,9 @@ export class Comment {
   @Prop({
     type: {
       likes: { type: Number, default: 0 },
-      likedUsers: { type: [Types.ObjectId], default: [] }
+      likedUsers: { type: [Types.ObjectId], default: [] },
     },
-    default: {}
+    default: () => ({})
   })
   reactions: {
     likes: number;
