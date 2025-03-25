@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject, forwardRef } from '@nestjs/common';
 import { UsersRepository } from './repositories/users.repository';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -6,10 +6,15 @@ import { UserDocument } from './entities/user.entity';
 import { ExceptionFactory } from '../../common/exceptions/app.exception';
 import { BaseService } from '../../common/base/base.service';
 import { Request } from 'express';
+import { PasswordService } from '../auth/services/password.service';
 
 @Injectable()
 export class UsersService extends BaseService<UserDocument> {
-  constructor(private readonly usersRepository: UsersRepository) {
+  constructor(
+    private readonly usersRepository: UsersRepository,
+    @Inject(forwardRef(() => PasswordService))
+    private readonly passwordService: PasswordService,
+  ) {
     super(usersRepository, 'User');
   }
 
@@ -37,7 +42,11 @@ export class UsersService extends BaseService<UserDocument> {
       throw ExceptionFactory.usernameTaken(createUserDto.accountData.username);
     }
 
-    return super.create(createUserDto);
+    // Create user document
+    const user = await super.create(createUserDto);
+    
+    // Hash password
+    return this.passwordService.hashPasswordForUser(user);
   }
 
   /**
@@ -107,7 +116,7 @@ export class UsersService extends BaseService<UserDocument> {
       return null;
     }
 
-    const isPasswordValid = await this.usersRepository.comparePassword(
+    const isPasswordValid = await this.passwordService.comparePassword(
       user,
       password,
     );

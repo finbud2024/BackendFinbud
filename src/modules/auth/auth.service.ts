@@ -7,6 +7,7 @@ import { UserDocument } from '../users/entities/user.entity';
 import { RegisterDto } from './dto/register.dto';
 import { CreateUserDto } from '../users/dto/create-user.dto';
 import { TokenService } from './services/token.service';
+import { PasswordService } from './services/password.service';
 
 @Injectable()
 export class AuthService {
@@ -16,6 +17,7 @@ export class AuthService {
     private usersService: UsersService,
     private jwtService: JwtService,
     private tokenService: TokenService,
+    private passwordService: PasswordService,
   ) {}
 
   /**
@@ -34,7 +36,7 @@ export class AuthService {
         throw ExceptionFactory.invalidCredentials();
       }
       
-      const isPasswordValid = await user.comparePassword(password);
+      const isPasswordValid = await this.passwordService.comparePassword(user, password);
       
       if (!isPasswordValid) {
         this.logger.warn(`Authentication failed: Invalid password for user with email ${username}`);
@@ -43,8 +45,8 @@ export class AuthService {
       
       this.logger.log(`User with email ${username} authenticated successfully`);
       
-      // We don't want to return the password in the response
-      const { accountData, ...result } = user.toJSON();
+      // Return user data without sensitive information
+      const { accountData, ...result } = user;
       const { password: _, ...accountDataWithoutPassword } = accountData;
       
       return {
@@ -111,7 +113,6 @@ export class AuthService {
         access_token: token,
         priviledge: newUser.accountData.priviledge
       };
-      
     } catch (error) {
       if (error.message && error.message.includes('username is already taken')) {
         this.logger.warn(`Registration failed: Email ${registerDto.username} already exists`);

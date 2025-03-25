@@ -71,9 +71,6 @@ export class User extends Document {
 
   @Prop({ type: Settings })
   settings: Settings;
-
-  // Methods will be added to prototype through UserSchema
-  comparePassword: (candidatePassword: string) => Promise<boolean>;
 }
 
 export type UserDocument = User & Document;
@@ -103,16 +100,4 @@ UserSchema.pre('save', async function (next) {
   } catch (error) {
     next(error);
   }
-});
-
-// Add comparePassword method
-UserSchema.methods.comparePassword = async function (
-  candidatePassword: string,
-): Promise<boolean> {
-  try {
-    const user = this as UserDocument;
-    return bcrypt.compare(candidatePassword, user.accountData.password);
-  } catch (error) {
-    return false;
-  }
-}; 
+}); 

@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
@@ -12,10 +12,11 @@ import { UsersModule } from '../users/users.module';
 import { TokenService } from './services/token.service';
 import { TokenRepository } from './repositories/token.repository';
 import { Token, TokenSchema } from './entities/token.entity';
+import { PasswordService } from './services/password.service';
 
 @Module({
   imports: [
-    UsersModule,
+    forwardRef(() => UsersModule),
     PassportModule,
     MongooseModule.forFeature([
       { name: Token.name, schema: TokenSchema }
@@ -35,8 +36,9 @@ import { Token, TokenSchema } from './entities/token.entity';
     LocalStrategy, 
     JwtStrategy,
     TokenService,
-    TokenRepository
+    TokenRepository,
+    PasswordService
   ],
-  exports: [AuthService, TokenService],
+  exports: [AuthService, TokenService, PasswordService],
 })
 export class AuthModule {} 

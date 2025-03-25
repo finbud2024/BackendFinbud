@@ -21,18 +21,4 @@ export class UsersRepository extends BaseRepository<UserDocument> {
     this.logger.debug(`Finding user by username: ${username}`);
     return this.findOne({ 'accountData.username': username });
   }
-
-  /**
-   * Compare a password with a user's stored password
-   * @param user User document
-   * @param candidatePassword Password to compare
-   * @returns Whether the password matches
-   */
-  async comparePassword(
-    user: UserDocument,
-    candidatePassword: string,
-  ): Promise<boolean> {
-    this.logger.debug(`Comparing password for user ID: ${user._id}`);
-    return user.comparePassword(candidatePassword);
-  }
 } 
