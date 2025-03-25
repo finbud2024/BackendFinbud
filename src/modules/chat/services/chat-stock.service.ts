@@ -2,12 +2,16 @@ import { Injectable } from '@nestjs/common';
 import { ChatStockRepository } from '../repositories/chat-stock.repository';
 import { CreateChatStockDto, UpdateChatStockDto } from '../dto';
 import { ExceptionFactory } from '../../../common/exceptions/app.exception';
+import { BaseService } from '../../../common/base/base.service';
+import { Request } from 'express';
 
 @Injectable()
-export class ChatStockService {
+export class ChatStockService extends BaseService<any> {
   constructor(
     private readonly chatStockRepository: ChatStockRepository,
-  ) {}
+  ) {
+    super(chatStockRepository, 'ChatStock');
+  }
 
   async create(createChatStockDto: CreateChatStockDto) {
     return this.chatStockRepository.create(createChatStockDto);
@@ -28,11 +32,33 @@ export class ChatStockService {
     return this.chatStockRepository.create(completeDto);
   }
 
-  async findAll(userId: string, page = 1, limit = 15) {
+  /**
+   * Create a chat stock for the current user
+   */
+  async createForCurrentUser(request: Request, createDto: Partial<CreateChatStockDto>) {
+    const userId = this.getUserIdFromRequest(request);
+    return this.createForUser(userId, createDto);
+  }
+
+  /**
+   * Find all chat stocks for a specific user
+   */
+  async findUserChats(userId: string, page = 1, limit = 15) {
     return this.chatStockRepository.findUserChats(userId, page, limit);
   }
 
-  async findOne(id: string) {
+  /**
+   * Find all chat stocks for the current user
+   */
+  async findUserChatsForCurrentUser(request: Request, page = 1, limit = 15) {
+    const userId = this.getUserIdFromRequest(request);
+    return this.findUserChats(userId, page, limit);
+  }
+
+  /**
+   * Find one chat stock by ID
+   */
+  async findChatStockById(id: string) {
     const chatStock = await this.chatStockRepository.findById(id);
     if (!chatStock) {
       throw ExceptionFactory.chatNotFoundSimple();
@@ -64,5 +90,13 @@ export class ChatStockService {
     
     // Return null if no response found for today
     return todayResponse;
+  }
+
+  /**
+   * Find today's response for the current user
+   */
+  async findTodayResponseForCurrentUser(request: Request) {
+    const userId = this.getUserIdFromRequest(request);
+    return this.findTodayResponse(userId);
   }
 } 

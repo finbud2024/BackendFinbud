@@ -19,7 +19,6 @@ import { IsDate, IsOptional } from 'class-validator';
 import { PortfolioService } from './portfolio.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { AdminGuard } from '../../common/guards/admin.guard';
-import { UserRole } from '../../common/decorators/user-role.decorator';
 import { CreatePortfolioDto } from './dto/create-portfolio.dto';
 import { UpdatePortfolioDto } from './dto/update-portfolio.dto';
 import { CreateUserHoldingDto } from './dto/create-user-holding.dto';
@@ -27,7 +26,6 @@ import { UpdateUserHoldingDto } from './dto/update-user-holding.dto';
 import { AddPortfolioEntryDto } from './dto/add-portfolio-entry.dto';
 import { UpdateStockHoldingDto } from './dto/update-stock-holding.dto';
 import { Request } from 'express';
-import { ExceptionFactory } from '../../common/exceptions/app.exception';
 import { BaseController } from '../../common/base/base.controller';
 
 // DTO for date range query params
@@ -55,8 +53,7 @@ export class PortfolioController extends BaseController {
   // GET /portfolios/me - Get current user's portfolio
   @Get('me')
   async getMyPortfolio(@Req() request: Request) {
-    const userId = this.getUserIdFromRequest(request);
-    return this.portfolioService.getUserPortfolio(userId);
+    return this.portfolioService.getCurrentUserPortfolio(request);
   }
 
   // GET /portfolios/me/history - Get current user's portfolio history
@@ -65,17 +62,15 @@ export class PortfolioController extends BaseController {
     @Query() dateRange: DateRangeDto,
     @Req() request: Request
   ) {
-    const userId = this.getUserIdFromRequest(request);
     const startDate = dateRange.startDate || new Date(0); // Default to beginning of epoch
     const endDate = dateRange.endDate || new Date(); // Default to current date
-    return this.portfolioService.getPortfolioHistory(userId, startDate, endDate);
+    return this.portfolioService.getCurrentUserPortfolioHistory(request, startDate, endDate);
   }
 
   // GET /portfolios/me/holdings - Get current user's stock holdings
   @Get('me/holdings')
   async getMyHoldings(@Req() request: Request) {
-    const userId = this.getUserIdFromRequest(request);
-    return this.portfolioService.getUserHoldings(userId);
+    return this.portfolioService.getCurrentUserHoldings(request);
   }
 
   // POST /portfolios/me - Create portfolio for current user
@@ -84,12 +79,7 @@ export class PortfolioController extends BaseController {
     @Body() createPortfolioDto: CreatePortfolioDto,
     @Req() request: Request
   ) {
-    const userId = this.getUserIdFromRequest(request);
-    
-    // Set the userId from the authenticated user
-    createPortfolioDto.userId = userId;
-    
-    return this.portfolioService.createPortfolio(createPortfolioDto);
+    return this.portfolioService.createPortfolioForCurrentUser(request, createPortfolioDto);
   }
 
   // POST /portfolios/me/holdings - Create holdings for current user
@@ -98,12 +88,7 @@ export class PortfolioController extends BaseController {
     @Body() createUserHoldingDto: CreateUserHoldingDto,
     @Req() request: Request
   ) {
-    const userId = this.getUserIdFromRequest(request);
-    
-    // Set the userId from the authenticated user
-    createUserHoldingDto.userId = userId;
-    
-    return this.portfolioService.createUserHolding(createUserHoldingDto);
+    return this.portfolioService.createHoldingsForCurrentUser(request, createUserHoldingDto);
   }
 
   // POST /portfolios/me/entries - Add entry to current user's portfolio
@@ -112,8 +97,7 @@ export class PortfolioController extends BaseController {
     @Body() entryData: AddPortfolioEntryDto,
     @Req() request: Request
   ) {
-    const userId = this.getUserIdFromRequest(request);
-    return this.portfolioService.addPortfolioEntry(userId, entryData);
+    return this.portfolioService.addCurrentUserPortfolioEntry(request, entryData);
   }
 
   // PUT /portfolios/me - Update current user's portfolio
@@ -122,8 +106,7 @@ export class PortfolioController extends BaseController {
     @Body() updatePortfolioDto: UpdatePortfolioDto,
     @Req() request: Request
   ) {
-    const userId = this.getUserIdFromRequest(request);
-    return this.portfolioService.updatePortfolio(userId, updatePortfolioDto);
+    return this.portfolioService.updateCurrentUserPortfolio(request, updatePortfolioDto);
   }
 
   // PUT /portfolios/me/holdings/:symbol - Update a stock holding for current user
@@ -133,8 +116,7 @@ export class PortfolioController extends BaseController {
     @Body() updateData: UpdateStockHoldingDto,
     @Req() request: Request
   ) {
-    const userId = this.getUserIdFromRequest(request);
-    return this.portfolioService.updateStockHolding(userId, symbol, updateData);
+    return this.portfolioService.updateCurrentUserStockHolding(request, symbol, updateData);
   }
 
   // DELETE /portfolios/me/holdings/:symbol - Remove a stock from current user's holdings
@@ -143,15 +125,13 @@ export class PortfolioController extends BaseController {
     @Param('symbol') symbol: string,
     @Req() request: Request
   ) {
-    const userId = this.getUserIdFromRequest(request);
-    return this.portfolioService.removeStockHolding(userId, symbol);
+    return this.portfolioService.removeCurrentUserStockHolding(request, symbol);
   }
 
   // POST /portfolios/me/initialize - Initialize portfolio for current user
   @Post('me/initialize')
   async initializeMyPortfolio(@Req() request: Request) {
-    const userId = this.getUserIdFromRequest(request);
-    return this.portfolioService.initializeUserPortfolio(userId);
+    return this.portfolioService.initializeCurrentUserPortfolio(request);
   }
 
   // =============== ADMIN-ONLY ROUTES ===============

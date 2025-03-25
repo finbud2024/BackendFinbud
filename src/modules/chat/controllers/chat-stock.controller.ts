@@ -20,8 +20,7 @@ export class ChatStockController extends BaseController {
 
   @Post('responses/me')
   createForCurrentUser(@Req() request: Request, @Body() createDto: Partial<CreateChatStockDto>) {
-    const userId = this.getUserIdFromRequest(request);
-    return this.chatStockService.createForUser(userId, createDto);
+    return this.chatStockService.createForCurrentUser(request, createDto);
   }
 
   @Get('responses/me')
@@ -30,16 +29,12 @@ export class ChatStockController extends BaseController {
     @Query('page') page?: number,
     @Query('limit') limit?: number,
   ) {
-    // Get current user's responses from JWT token
-    const userId = this.getUserIdFromRequest(request);
-    return this.chatStockService.findAll(userId, page, limit);
+    return this.chatStockService.findUserChatsForCurrentUser(request, page, limit);
   }
 
   @Get('responses/today/me')
   findMyTodayResponse(@Req() request: Request) {
-    // Get current user's today's response from JWT token
-    const userId = this.getUserIdFromRequest(request);
-    return this.chatStockService.findTodayResponse(userId);
+    return this.chatStockService.findTodayResponseForCurrentUser(request);
   }
 
   @Get('responses/today/:userId')
@@ -55,12 +50,12 @@ export class ChatStockController extends BaseController {
     @Query('page') page?: number,
     @Query('limit') limit?: number,
   ) {
-    return this.chatStockService.findAll(userId, page, limit);
+    return this.chatStockService.findUserChats(userId, page, limit);
   }
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.chatStockService.findOne(id);
+    return this.chatStockService.findChatStockById(id);
   }
 
   @Put(':id')

@@ -10,11 +10,10 @@ import { UserHolding, UserHoldingDocument } from './entities/user-holding.entity
 import { CreatePortfolioDto } from './dto/create-portfolio.dto';
 import { UpdatePortfolioDto } from './dto/update-portfolio.dto';
 import { CreateUserHoldingDto } from './dto/create-user-holding.dto';
-import { UpdateUserHoldingDto } from './dto/update-user-holding.dto';
 import { AddPortfolioEntryDto } from './dto/add-portfolio-entry.dto';
 import { UpdateStockHoldingDto } from './dto/update-stock-holding.dto';
-import { ExceptionFactory } from '../../common/exceptions/app.exception';
 import { HttpException, HttpStatus } from '@nestjs/common';
+import { Request } from 'express';
 
 @Injectable()
 export class PortfolioService extends BaseService<PortfolioDocument> {
@@ -48,6 +47,18 @@ export class PortfolioService extends BaseService<PortfolioDocument> {
   }
 
   /**
+   * Create a new portfolio for the current user
+   */
+  async createPortfolioForCurrentUser(request: Request, createPortfolioDto: CreatePortfolioDto): Promise<PortfolioDocument> {
+    const userId = this.getUserIdFromRequest(request);
+    
+    // Set the userId from the authenticated user
+    createPortfolioDto.userId = userId;
+    
+    return this.createPortfolio(createPortfolioDto);
+  }
+
+  /**
    * Create user holdings
    */
   async createUserHolding(createUserHoldingDto: CreateUserHoldingDto): Promise<UserHoldingDocument> {
@@ -69,6 +80,18 @@ export class PortfolioService extends BaseService<PortfolioDocument> {
   }
 
   /**
+   * Create holdings for the current user
+   */
+  async createHoldingsForCurrentUser(request: Request, createUserHoldingDto: CreateUserHoldingDto): Promise<UserHoldingDocument> {
+    const userId = this.getUserIdFromRequest(request);
+    
+    // Set the userId from the authenticated user
+    createUserHoldingDto.userId = userId;
+    
+    return this.createUserHolding(createUserHoldingDto);
+  }
+
+  /**
    * Get a user's portfolio
    */
   async getUserPortfolio(userId: string): Promise<PortfolioDocument> {
@@ -83,6 +106,14 @@ export class PortfolioService extends BaseService<PortfolioDocument> {
   }
 
   /**
+   * Get the current user's portfolio
+   */
+  async getCurrentUserPortfolio(request: Request): Promise<PortfolioDocument> {
+    const userId = this.getUserIdFromRequest(request);
+    return this.getUserPortfolio(userId);
+  }
+
+  /**
    * Get a user's stock holdings
    */
   async getUserHoldings(userId: string): Promise<UserHoldingDocument> {
@@ -94,6 +125,14 @@ export class PortfolioService extends BaseService<PortfolioDocument> {
     }
     
     return holdings;
+  }
+
+  /**
+   * Get the current user's holdings
+   */
+  async getCurrentUserHoldings(request: Request): Promise<UserHoldingDocument> {
+    const userId = this.getUserIdFromRequest(request);
+    return this.getUserHoldings(userId);
   }
 
   /**
@@ -112,6 +151,14 @@ export class PortfolioService extends BaseService<PortfolioDocument> {
   }
 
   /**
+   * Update the current user's portfolio
+   */
+  async updateCurrentUserPortfolio(request: Request, updatePortfolioDto: UpdatePortfolioDto): Promise<PortfolioDocument> {
+    const userId = this.getUserIdFromRequest(request);
+    return this.updatePortfolio(userId, updatePortfolioDto);
+  }
+
+  /**
    * Add a new entry to a portfolio's history
    */
   async addPortfolioEntry(userId: string, entryData: AddPortfolioEntryDto): Promise<PortfolioDocument> {
@@ -124,6 +171,14 @@ export class PortfolioService extends BaseService<PortfolioDocument> {
     }
     
     return updatedPortfolio;
+  }
+
+  /**
+   * Add an entry to the current user's portfolio
+   */
+  async addCurrentUserPortfolioEntry(request: Request, entryData: AddPortfolioEntryDto): Promise<PortfolioDocument> {
+    const userId = this.getUserIdFromRequest(request);
+    return this.addPortfolioEntry(userId, entryData);
   }
 
   /**
@@ -153,6 +208,18 @@ export class PortfolioService extends BaseService<PortfolioDocument> {
   }
 
   /**
+   * Update a stock holding for the current user
+   */
+  async updateCurrentUserStockHolding(
+    request: Request, 
+    stockSymbol: string, 
+    updateData: UpdateStockHoldingDto
+  ): Promise<UserHoldingDocument> {
+    const userId = this.getUserIdFromRequest(request);
+    return this.updateStockHolding(userId, stockSymbol, updateData);
+  }
+
+  /**
    * Remove a stock from a user's holdings
    */
   async removeStockHolding(userId: string, stockSymbol: string): Promise<UserHoldingDocument> {
@@ -168,6 +235,14 @@ export class PortfolioService extends BaseService<PortfolioDocument> {
     await this.updatePortfolioValue(userId);
     
     return updatedHoldings;
+  }
+
+  /**
+   * Remove a stock holding for the current user
+   */
+  async removeCurrentUserStockHolding(request: Request, stockSymbol: string): Promise<UserHoldingDocument> {
+    const userId = this.getUserIdFromRequest(request);
+    return this.removeStockHolding(userId, stockSymbol);
   }
 
   /**
@@ -210,6 +285,18 @@ export class PortfolioService extends BaseService<PortfolioDocument> {
     }
     
     return this.portfolioRepository.getPortfolioHistory(userId, startDate, endDate);
+  }
+
+  /**
+   * Get portfolio history for the current user
+   */
+  async getCurrentUserPortfolioHistory(
+    request: Request,
+    startDate: Date,
+    endDate: Date
+  ): Promise<{ date: Date; totalValue: number }[]> {
+    const userId = this.getUserIdFromRequest(request);
+    return this.getPortfolioHistory(userId, startDate, endDate);
   }
 
   /**
@@ -257,8 +344,16 @@ export class PortfolioService extends BaseService<PortfolioDocument> {
       
       return { portfolio, holdings };
     } catch (error) {
-      this.logger.error(`Error initializing user portfolio: ${error.message}`, error.stack);
+      this.logger.error(`Error initializing portfolio: ${error.message}`, error.stack);
       throw error;
     }
+  }
+
+  /**
+   * Initialize portfolio for the current user
+   */
+  async initializeCurrentUserPortfolio(request: Request): Promise<{ portfolio: PortfolioDocument; holdings: UserHoldingDocument }> {
+    const userId = this.getUserIdFromRequest(request);
+    return this.initializeUserPortfolio(userId);
   }
 } 
