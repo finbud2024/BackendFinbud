@@ -6,12 +6,17 @@ import { CreateEventDto } from './dto/create-event.dto';
 import { QueryEventDto } from './dto/query-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { AppException, ExceptionFactory } from '../../common/exceptions/app.exception';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
 
 @Injectable()
 export class EventsService extends BaseService<EventDocument> {
   protected readonly logger = new Logger(EventsService.name);
 
-  constructor(private readonly eventRepository: EventRepository) {
+  constructor(
+    private readonly eventRepository: EventRepository,
+    @InjectModel(Event.name) private readonly eventModel: Model<EventDocument>,
+  ) {
     super(eventRepository, 'Event');
   }
 
@@ -342,5 +347,31 @@ export class EventsService extends BaseService<EventDocument> {
     }
 
     return filter;
+  }
+
+  /**
+   * Validate and parse nearby event parameters
+   * @param latParam Latitude parameter string
+   * @param lngParam Longitude parameter string
+   * @param radiusParam Radius parameter string (optional)
+   * @returns Parsed and validated parameters
+   */
+  validateAndParseNearbyParams(latParam: string, lngParam: string, radiusParam?: string) {
+    // Validate required parameters
+    if (!latParam || !lngParam) {
+      throw ExceptionFactory.eventInvalidData('Both lat and lng parameters are required');
+    }
+    
+    const lat = parseFloat(latParam);
+    const lng = parseFloat(lngParam);
+    
+    // Check if parsing was successful
+    if (isNaN(lat) || isNaN(lng)) {
+      throw ExceptionFactory.eventInvalidData('lat and lng must be valid numbers');
+    }
+    
+    const radius = radiusParam ? parseFloat(radiusParam) : 10; // Default 10 km radius
+    
+    return { lat, lng, radius };
   }
 } 

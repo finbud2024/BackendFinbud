@@ -1,19 +1,21 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, Query, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Put, Query, UseGuards, HttpCode, HttpStatus, Req } from '@nestjs/common';
 import { EventsService } from './events.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { ScraperService } from './services/scraper.service';
-import { AdminGuard } from 'src/common/guards/admin.guard';
-import { ExceptionFactory } from '../../common/exceptions/app.exception';
+import { AdminGuard } from '../../common/guards/admin.guard';
+import { BaseController } from '../../common/base/base.controller';
 
 @Controller('events')
 @UseGuards(JwtAuthGuard)
-export class EventsController {
+export class EventsController extends BaseController {
   constructor(
     private readonly eventsService: EventsService,
     private readonly scraperService: ScraperService
-  ) {}
+  ) {
+    super();
+  }
 
   /**
    * Get events with filtering and pagination
@@ -68,20 +70,10 @@ export class EventsController {
     @Query('lng') lngParam: string,
     @Query('radius') radiusParam?: string
   ) {
-    // Validate required parameters
-    if (!latParam || !lngParam) {
-      throw ExceptionFactory.eventInvalidData('Both lat and lng parameters are required');
-    }
-    
-    const lat = parseFloat(latParam);
-    const lng = parseFloat(lngParam);
-    
-    // Check if parsing was successful
-    if (isNaN(lat) || isNaN(lng)) {
-      throw ExceptionFactory.eventInvalidData('lat and lng must be valid numbers');
-    }
-    
-    const radius = radiusParam ? parseFloat(radiusParam) : 10; // Default 10 km radius
+    // Use the service to validate and parse parameters
+    const { lat, lng, radius } = this.eventsService.validateAndParseNearbyParams(
+      latParam, lngParam, radiusParam
+    );
     
     const events = await this.eventsService.getEventsNearLocation(lat, lng, radius, true);
     return { 
@@ -142,6 +134,7 @@ export class EventsController {
    */
   @Delete(':id')
   @UseGuards(AdminGuard)
+  @HttpCode(HttpStatus.NO_CONTENT)
   async remove(@Param('id') id: string) {
     return await this.eventsService.deleteEvent(id);
   }
