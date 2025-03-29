@@ -735,4 +735,27 @@ export class BaseService<T extends Document> {
     }
     return user.userId;
   }
+
+  /**
+   * Validate that a user owns an entity
+   * @param entity Entity with userId property
+   * @param userId User ID to check ownership against
+   * @param entityType Optional entity type name for logging (defaults to this.entityName)
+   * @param entityId Optional entity ID for logging
+   */
+  protected validateEntityOwnership<T extends { userId: string }>(
+    entity: T,
+    userId: string,
+    entityType?: string,
+    entityId?: string
+  ): void {
+    const type = entityType || this.entityName;
+    
+    if (entity.userId !== userId) {
+      this.logger.warn(
+        `User ${userId} attempted to access ${type}${entityId ? ` ${entityId}` : ''} belonging to user ${entity.userId}`
+      );
+      throw ExceptionFactory.forbidden(`You do not have permission to access this ${type.toLowerCase()}`);
+    }
+  }
 } 

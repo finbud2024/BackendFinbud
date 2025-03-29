@@ -18,6 +18,7 @@ import { PortfolioModule } from './modules/portfolio/portfolio.module';
 import { CryptoModule } from './modules/crypto/crypto.module';
 import { EventsModule } from './modules/events/events.module';
 import { ChatModule } from './modules/chat/chat.module';
+import { QuantSimulatorModule } from './modules/quantsimulator/quantsimulator.module';
 
 // Config
 import { getMongoConfig } from './config/database/mongoose.config';
@@ -47,6 +48,7 @@ import { getMongoConfig } from './config/database/mongoose.config';
     EventsModule,
     ScheduleModule.forRoot(),
     ChatModule,
+    QuantSimulatorModule,
   ],
   controllers: [AppController],
   providers: [

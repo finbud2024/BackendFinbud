@@ -4,6 +4,7 @@ import { AppModule } from './app.module';
 import { ConfigService } from '@nestjs/config';
 import { GlobalExceptionFilter } from './common/filters/http-exception.filter';
 import mongoose from 'mongoose';
+import { IoAdapter } from '@nestjs/platform-socket.io';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -23,8 +24,15 @@ async function bootstrap() {
     console.error('❌ MongoDB URI not defined in environment variables');
   }
 
+  // Configure WebSockets
+  app.useWebSocketAdapter(new IoAdapter(app));
+
   // Enable CORS
-  app.enableCors();
+  app.enableCors({
+    origin: '*', // In production, you should restrict this to your frontend domain
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    credentials: true,
+  });
 
   // Global validation pipe
   app.useGlobalPipes(
@@ -47,5 +55,6 @@ async function bootstrap() {
   await app.listen(port);
   console.log(`✅ Application is running on: ${await app.getUrl()}`);
   console.log(`💾 Database connection is maintained through mongoose module`);
+  console.log(`🔌 WebSockets are enabled and listening for connections`);
 }
 bootstrap();
