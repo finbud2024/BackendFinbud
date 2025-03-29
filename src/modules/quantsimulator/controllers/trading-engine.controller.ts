@@ -44,14 +44,11 @@ export class TradingEngineController extends BaseController {
   processTrade(
     @Req() request: Request,
     @Param('sessionId') sessionId: string,
-    @Body() body: { 
-      simulation: SimulationState; 
-      trade: TradeDto;
-    },
+    @Body() body: { trade: TradeDto },
   ): SimulationState {
     return this.tradingEngineService.processTradeForCurrentUser(
       request,
-      body.simulation,
+      { sessionId },
       body.trade.type,
       body.trade.action,
       body.trade.id
@@ -61,18 +58,16 @@ export class TradingEngineController extends BaseController {
   /**
    * Calculate results for a simulation
    * @param sessionId Simulation session ID
-   * @param body Request body containing the simulation to calculate results for
    * @returns Simulation results
    */
   @Post('simulation/:sessionId/results')
   calculateResults(
     @Req() request: Request,
-    @Param('sessionId') sessionId: string,
-    @Body() body: { simulation: SimulationState },
+    @Param('sessionId') sessionId: string
   ): SimulationResult {
     return this.tradingEngineService.calculateResultsForCurrentUser(
       request,
-      body.simulation
+      { sessionId }
     );
   }
   

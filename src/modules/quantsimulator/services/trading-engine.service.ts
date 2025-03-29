@@ -593,19 +593,31 @@ export class TradingEngineService extends BaseService<any> {
   /**
    * Process a trade for the current user's simulation
    * @param request Express request
-   * @param simulation The simulation state
+   * @param simulationOrId The simulation state or session ID
    * @param tradeType The trade type (market or side)
    * @param action The trade action (buy or sell)
    * @param sideTradeId Optional ID for side trades
    */
   processTradeForCurrentUser(
     request: Request,
-    simulation: SimulationState,
+    simulationOrId: SimulationState | { sessionId: string },
     tradeType: 'm' | 's',
     action: 'b' | 's',
     sideTradeId?: number
   ): SimulationState {
     const userId = this.getUserIdFromRequest(request);
+    
+    // Handle case where only sessionId is provided
+    let simulation: SimulationState;
+    if ('sessionId' in simulationOrId && !('userId' in simulationOrId)) {
+      // This is just a sessionId wrapper, get the full simulation
+      const sessionId = simulationOrId.sessionId;
+      this.logger.log(`Retrieving simulation for processing trade: ${sessionId}`);
+      simulation = this.getOrCreateSimulation(userId, sessionId);
+    } else {
+      // Full simulation object was provided
+      simulation = simulationOrId as SimulationState;
+    }
     
     // Ensure sessionId follows the correct format
     if (!simulation.sessionId.startsWith('session:')) {
@@ -628,6 +640,9 @@ export class TradingEngineService extends BaseService<any> {
       current_multiplier: simulation.currentMultiplier,
       current_time: simulation.currentTime
     });
+    
+    // Save the updated simulation
+    this.saveSimulation(simulation);
     
     return simulation;
   }
@@ -707,10 +722,25 @@ export class TradingEngineService extends BaseService<any> {
   /**
    * Calculate results for the current user's simulation
    * @param request Express request 
-   * @param simulation Simulation state
+   * @param simulationOrId Simulation state or object with sessionId
    */
-  calculateResultsForCurrentUser(request: Request, simulation: SimulationState): SimulationResult {
+  calculateResultsForCurrentUser(
+    request: Request, 
+    simulationOrId: SimulationState | { sessionId: string }
+  ): SimulationResult {
     const userId = this.getUserIdFromRequest(request);
+    
+    // Handle case where only sessionId is provided
+    let simulation: SimulationState;
+    if ('sessionId' in simulationOrId && !('userId' in simulationOrId)) {
+      // This is just a sessionId wrapper, get the full simulation
+      const sessionId = simulationOrId.sessionId;
+      this.logger.log(`Retrieving simulation for calculating results: ${sessionId}`);
+      simulation = this.getOrCreateSimulation(userId, sessionId);
+    } else {
+      // Full simulation object was provided
+      simulation = simulationOrId as SimulationState;
+    }
     
     // Validate ownership 
     this.validateEntityOwnership(simulation, userId, 'Simulation', simulation.sessionId);
@@ -1167,6 +1197,9 @@ export class TradingEngineService extends BaseService<any> {
       current_time: simulation.currentTime
     });
     
+    // Save the updated simulation
+    this.saveSimulation(simulation);
+    
     return simulation;
   }
   
@@ -1205,6 +1238,9 @@ export class TradingEngineService extends BaseService<any> {
       server_time: syncResult.serverTime
     });
     
+    // Save the updated simulation
+    this.saveSimulation(simulation);
+    
     return syncResult;
   }
   
@@ -1231,6 +1267,9 @@ export class TradingEngineService extends BaseService<any> {
       
       // Since we're implicitly starting, broadcast this too
       this.broadcastSimulationEvent(fullSessionId, 'simulation-started');
+      
+      // Save the updated simulation
+      this.saveSimulation(simulation);
     }
     
     // Validate ownership
@@ -1285,7 +1324,7 @@ export class TradingEngineService extends BaseService<any> {
     // Match original format: prepend 'session:' if not already there
     const fullSessionId = sessionId.startsWith('session:') ? sessionId : `session:${sessionId}`;
     
-    this.logger.log(`Handling user input for user ${userId}, session ${fullSessionId}: ${input}`);
+    this.logger.log(`Handling user input for user ${userId}, session ${fullSessionId}, input: ${input}`);
     
     // Get an existing simulation or create a new one
     const simulation = this.getOrCreateSimulation(userId, fullSessionId);
@@ -1293,7 +1332,13 @@ export class TradingEngineService extends BaseService<any> {
     // Validate ownership
     this.validateEntityOwnership(simulation, userId, 'Simulation', fullSessionId);
     
-    return this.handleUserInput(simulation, input);
+    // Process the input
+    const result = this.handleUserInput(simulation, input);
+    
+    // Save the updated simulation
+    this.saveSimulation(simulation);
+    
+    return result;
   }
   
   /**

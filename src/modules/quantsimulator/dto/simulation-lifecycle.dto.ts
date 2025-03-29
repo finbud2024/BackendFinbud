@@ -25,12 +25,6 @@ export class StartSimulationDto {
  */
 export class SetDisplayTimeDto {
   /**
-   * Session ID to update
-   */
-  @IsString()
-  sessionId: string;
-  
-  /**
    * Time index to set
    */
   @IsNumber()
@@ -42,12 +36,6 @@ export class SetDisplayTimeDto {
  * DTO for synchronizing simulation data
  */
 export class SyncSimulationDto {
-  /**
-   * Session ID to sync
-   */
-  @IsString()
-  sessionId: string;
-  
   /**
    * Client's current time
    */
