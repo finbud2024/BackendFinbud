@@ -6,7 +6,7 @@ import { TradingEngineGateway } from './gateways/trading-engine.gateway';
 @Module({
   controllers: [TradingEngineController],
   providers: [
-    TradingEngineService, 
+    TradingEngineService,
     TradingEngineGateway
   ],
   exports: [TradingEngineService, TradingEngineGateway],

@@ -8,7 +8,7 @@ import {
   MessageBody 
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { Logger, UseGuards } from '@nestjs/common';
+import { Logger, UseGuards, Inject, forwardRef } from '@nestjs/common';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { TradingEngineService } from '../services/trading-engine.service';
 
@@ -26,7 +26,10 @@ export class TradingEngineGateway implements OnGatewayConnection, OnGatewayDisco
   private clientRooms = new Map<string, string[]>(); // Client ID -> Room IDs
   private roomClients = new Map<string, string[]>(); // Room ID -> Client IDs
 
-  constructor(private readonly tradingEngineService: TradingEngineService) {}
+  constructor(
+    @Inject(forwardRef(() => TradingEngineService))
+    private readonly tradingEngineService: TradingEngineService
+  ) {}
 
   handleConnection(client: Socket): void {
     this.logger.log(`Client connected: ${client.id}`);

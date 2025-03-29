@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject, forwardRef, Logger } from '@nestjs/common';
 import { SimulationState } from '../interfaces/simulation-state.interface';
 import { SideTrade } from '../models/side-trade.model';
 import { SimulationResult } from '../models/simulation-result.model';
@@ -7,15 +7,51 @@ import { TradeResult } from '../models/trade-result.model';
 import { Request } from 'express';
 import { BaseService } from '../../../common/base/base.service';
 import { ExceptionFactory } from '../../../common/exceptions/app.exception';
+import { TradingEngineGateway } from '../gateways/trading-engine.gateway';
 
 /**
  * Service that handles the core simulation logic for the trading engine
  */
 @Injectable()
 export class TradingEngineService extends BaseService<any> {
-  constructor() {
+  // In-memory storage for simulations
+  private sessions: Map<string, SimulationState> = new Map();
+  
+  constructor(
+    @Inject(forwardRef(() => TradingEngineGateway))
+    private readonly tradingEngineGateway: TradingEngineGateway
+  ) {
     // Since we don't use repository functionality in this service, we can pass null
     super(null as any, 'SimulationState');
+  }
+
+  /**
+   * Broadcasts a simulation event to all clients connected to a simulation room
+   * @param sessionId The simulation session ID
+   * @param eventType The type of event
+   * @param data Additional data to send with the event
+   */
+  private broadcastSimulationEvent(
+    sessionId: string, 
+    eventType: string, 
+    data: Record<string, any> = {}
+  ): void {
+    // Ensure sessionId follows the correct format (session:xyz)
+    const formattedSessionId = sessionId.startsWith('session:') ? sessionId : `session:${sessionId}`;
+    
+    // Ensure session_id is consistent with the original Node.js implementation
+    if (!data.session_id) {
+      data.session_id = formattedSessionId;
+    }
+    
+    this.tradingEngineGateway.broadcastSimulationUpdate(formattedSessionId, {
+      event: eventType,
+      sessionId: formattedSessionId,
+      timestamp: Date.now(),
+      ...data
+    });
+    
+    this.logger.debug(`Broadcasted ${eventType} event for simulation ${formattedSessionId}`);
   }
 
   /**
@@ -108,8 +144,11 @@ export class TradingEngineService extends BaseService<any> {
     }
   ): SimulationState {
     const userId = this.getUserIdFromRequest(request);
-    this.logger.log(`Creating new simulation for current user ${userId}`);
-    return this.createNewSimulation(userId, sessionId, options);
+    // Match original format: prepend 'session:' if not already there
+    const fullSessionId = sessionId.startsWith('session:') ? sessionId : `session:${userId}`;
+    
+    this.logger.log(`Creating new simulation for current user ${userId}, session ${fullSessionId}`);
+    return this.createNewSimulation(userId, fullSessionId, options);
   }
 
   /**
@@ -553,20 +592,44 @@ export class TradingEngineService extends BaseService<any> {
   
   /**
    * Process a trade for the current user's simulation
+   * @param request Express request
+   * @param simulation The simulation state
+   * @param tradeType The trade type (market or side)
+   * @param action The trade action (buy or sell)
+   * @param sideTradeId Optional ID for side trades
    */
   processTradeForCurrentUser(
     request: Request,
     simulation: SimulationState,
-    type: 'm' | 's',
+    tradeType: 'm' | 's',
     action: 'b' | 's',
-    id?: number
-  ): boolean {
-    // Verify user owns this simulation
+    sideTradeId?: number
+  ): SimulationState {
     const userId = this.getUserIdFromRequest(request);
+    
+    // Ensure sessionId follows the correct format
+    if (!simulation.sessionId.startsWith('session:')) {
+      this.logger.warn(`Session ID format incorrect: ${simulation.sessionId}. Formatting session ID.`);
+      simulation.sessionId = `session:${userId}`;
+    }
+    
+    // Validate ownership
     this.validateEntityOwnership(simulation, userId, 'Simulation', simulation.sessionId);
     
-    this.logger.log(`Processing ${type} trade for user ${userId}, simulation ${simulation.sessionId}`);
-    return this.processTrade(simulation, type, action, id);
+    // Process the trade
+    const success = this.processTrade(simulation, tradeType, action, sideTradeId);
+    
+    // Broadcast the trade
+    this.broadcastSimulationEvent(simulation.sessionId, 'trade-processed', {
+      trade_type: tradeType,
+      action: action,
+      side_trade_id: sideTradeId,
+      wallet_balance: simulation.walletBalance,
+      current_multiplier: simulation.currentMultiplier,
+      current_time: simulation.currentTime
+    });
+    
+    return simulation;
   }
   
   /**
@@ -643,13 +706,13 @@ export class TradingEngineService extends BaseService<any> {
   
   /**
    * Calculate results for the current user's simulation
+   * @param request Express request 
+   * @param simulation Simulation state
    */
-  calculateResultsForCurrentUser(
-    request: Request,
-    simulation: SimulationState
-  ): SimulationResult {
-    // Verify user owns this simulation
+  calculateResultsForCurrentUser(request: Request, simulation: SimulationState): SimulationResult {
     const userId = this.getUserIdFromRequest(request);
+    
+    // Validate ownership 
     this.validateEntityOwnership(simulation, userId, 'Simulation', simulation.sessionId);
     
     this.logger.log(`Calculating results for user ${userId}, simulation ${simulation.sessionId}`);
@@ -686,6 +749,7 @@ export class TradingEngineService extends BaseService<any> {
     simulation.trade_active = true;
     simulation.paused = false;
     this.logger.debug(`Simulation ${simulation.sessionId} started`);
+    // Broadcasting is handled by the caller
   }
   
   /**
@@ -694,6 +758,7 @@ export class TradingEngineService extends BaseService<any> {
   pauseSimulation(simulation: SimulationState): void {
     simulation.paused = true;
     this.logger.debug(`Simulation ${simulation.sessionId} paused at time ${simulation.currentTime}`);
+    // Broadcasting is handled by the caller
   }
   
   /**
@@ -702,6 +767,7 @@ export class TradingEngineService extends BaseService<any> {
   resumeSimulation(simulation: SimulationState): void {
     simulation.paused = false;
     this.logger.debug(`Simulation ${simulation.sessionId} resumed at time ${simulation.currentTime}`);
+    // Broadcasting is handled by the caller
   }
   
   /**
@@ -711,6 +777,7 @@ export class TradingEngineService extends BaseService<any> {
     simulation.active = false;
     simulation.trade_active = false;
     this.logger.debug(`Simulation ${simulation.sessionId} finished`);
+    // Broadcasting is handled by the caller
   }
   
   /**
@@ -719,8 +786,8 @@ export class TradingEngineService extends BaseService<any> {
   terminateSimulation(simulation: SimulationState): void {
     simulation.active = false;
     simulation.trade_active = false;
-    simulation.paused = false;
     this.logger.debug(`Simulation ${simulation.sessionId} terminated at time ${simulation.currentTime}`);
+    // Broadcasting is handled by the caller
   }
   
   /**
@@ -892,19 +959,77 @@ export class TradingEngineService extends BaseService<any> {
     speedMultiplier?: number;
   }): SimulationState {
     const userId = this.getUserIdFromRequest(request);
-    const sessionId = options?.sessionId || `sim_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
+    // Match original format: session:userId
+    const sessionId = options?.sessionId || `session:${userId}`;
     
-    this.logger.log(`Starting simulation for user ${userId}, session ${sessionId}`);
+    this.logger.log(`Creating new simulation for ${sessionId}`);
     
-    // Create new simulation
+    // Terminate existing simulation if any - matching original Node.js behavior
+    const existingSimulation = this.getSimulationBySessionId(sessionId);
+    if (existingSimulation) {
+      this.terminateSimulation(existingSimulation);
+    }
+    
+    // Create a new simulation
     const simulation = this.createNewSimulation(userId, sessionId, {
       rounds: options?.rounds,
       simulationTime: options?.simulationTime,
       speedMultiplier: options?.speedMultiplier
     });
     
-    // Start it
+    // Save the simulation to our in-memory sessions map
+    this.saveSimulation(simulation);
+    
+    // Start the simulation using the dedicated method
     this.startSimulation(simulation);
+    
+    // Broadcast that simulation has started
+    this.broadcastSimulationEvent(sessionId, 'simulation-started');
+    
+    return simulation;
+  }
+  
+  /**
+   * Get a simulation by session ID
+   * This retrieves the simulation from the in-memory sessions map
+   */
+  private getSimulationBySessionId(sessionId: string): SimulationState | null {
+    // Ensure the sessionId has the correct format before lookup
+    const formattedSessionId = sessionId.startsWith('session:') ? sessionId : `session:${sessionId}`;
+    return this.sessions.get(formattedSessionId) || null;
+  }
+  
+  /**
+   * Save a simulation to the in-memory sessions map
+   */
+  private saveSimulation(simulation: SimulationState): void {
+    // Ensure the sessionId has the correct format before saving
+    if (!simulation.sessionId.startsWith('session:')) {
+      this.logger.warn(`Correcting session ID format from ${simulation.sessionId} to session:${simulation.sessionId}`);
+      simulation.sessionId = `session:${simulation.sessionId}`;
+    }
+    
+    this.sessions.set(simulation.sessionId, simulation);
+    this.logger.debug(`Saved simulation ${simulation.sessionId} to session storage`);
+  }
+  
+  /**
+   * Get an existing simulation or create a new one if it doesn't exist
+   * This mimics the getOrCreateSimulation function from the original Node.js implementation
+   */
+  private getOrCreateSimulation(userId: string, sessionId: string): SimulationState {
+    // Ensure the sessionId has the correct format
+    const formattedSessionId = sessionId.startsWith('session:') ? sessionId : `session:${sessionId}`;
+    
+    // Try to get existing simulation
+    let simulation = this.getSimulationBySessionId(formattedSessionId);
+    
+    // If it doesn't exist, create a new one
+    if (!simulation) {
+      this.logger.log(`Simulation ${formattedSessionId} not found - creating new one for user ${userId}`);
+      simulation = this.createNewSimulation(userId, formattedSessionId);
+      this.saveSimulation(simulation);
+    }
     
     return simulation;
   }
@@ -916,15 +1041,25 @@ export class TradingEngineService extends BaseService<any> {
    */
   pauseSimulationForCurrentUser(request: Request, sessionId: string): SimulationState {
     const userId = this.getUserIdFromRequest(request);
+    // Match original format: prepend 'session:' if not already there
+    const fullSessionId = sessionId.startsWith('session:') ? sessionId : `session:${sessionId}`;
     
-    // In a real implementation, we would fetch the simulation from storage
-    // For now, create a mock simulation for demonstration
-    const simulation = this.createMockSimulation(userId, sessionId);
+    this.logger.log(`Pausing simulation for user ${userId}, session ${fullSessionId}`);
+    
+    // Get an existing simulation or create a new one
+    const simulation = this.getOrCreateSimulation(userId, fullSessionId);
     
     // Validate ownership
-    this.validateEntityOwnership(simulation, userId, 'Simulation', sessionId);
+    this.validateEntityOwnership(simulation, userId, 'Simulation', fullSessionId);
     
+    // Pause the simulation
     this.pauseSimulation(simulation);
+    
+    // Broadcast paused event with additional data matching original implementation
+    this.broadcastSimulationEvent(fullSessionId, 'simulation-paused', {
+      current_time: simulation.currentTime
+    });
+    
     return simulation;
   }
   
@@ -935,15 +1070,25 @@ export class TradingEngineService extends BaseService<any> {
    */
   resumeSimulationForCurrentUser(request: Request, sessionId: string): SimulationState {
     const userId = this.getUserIdFromRequest(request);
+    // Match original format: prepend 'session:' if not already there
+    const fullSessionId = sessionId.startsWith('session:') ? sessionId : `session:${sessionId}`;
     
-    // In a real implementation, we would fetch the simulation from storage
-    // For now, create a mock simulation for demonstration
-    const simulation = this.createMockSimulation(userId, sessionId);
+    this.logger.log(`Resuming simulation for user ${userId}, session ${fullSessionId}`);
+    
+    // Get an existing simulation or create a new one
+    const simulation = this.getOrCreateSimulation(userId, fullSessionId);
     
     // Validate ownership
-    this.validateEntityOwnership(simulation, userId, 'Simulation', sessionId);
+    this.validateEntityOwnership(simulation, userId, 'Simulation', fullSessionId);
     
+    // Resume the simulation
     this.resumeSimulation(simulation);
+    
+    // Broadcast resumed event with additional data
+    this.broadcastSimulationEvent(fullSessionId, 'simulation-resumed', {
+      current_time: simulation.currentTime
+    });
+    
     return simulation;
   }
   
@@ -954,12 +1099,13 @@ export class TradingEngineService extends BaseService<any> {
    */
   restartSimulationForCurrentUser(request: Request, sessionId: string): SimulationState {
     const userId = this.getUserIdFromRequest(request);
+    // Match original format: prepend 'session:' if not already there
+    const fullSessionId = sessionId.startsWith('session:') ? sessionId : `session:${sessionId}`;
     
-    // In a real implementation, we would terminate the existing simulation
-    // For now, just create a new one with the same session ID
+    this.logger.log(`Restarting simulation for user ${userId}, session ${fullSessionId}`);
     
-    this.logger.log(`Restarting simulation for user ${userId}, session ${sessionId}`);
-    return this.startSimulationForCurrentUser(request, { sessionId });
+    // In the original Node.js code, restart just creates a new simulation with the same ID
+    return this.startSimulationForCurrentUser(request, { sessionId: fullSessionId });
   }
   
   /**
@@ -969,10 +1115,28 @@ export class TradingEngineService extends BaseService<any> {
    */
   terminateSimulationForCurrentUser(request: Request, sessionId: string): void {
     const userId = this.getUserIdFromRequest(request);
+    // Match original format: prepend 'session:' if not already there
+    const fullSessionId = sessionId.startsWith('session:') ? sessionId : `session:${sessionId}`;
     
-    // In a real implementation, we would fetch and terminate the simulation
-    // For now, just log the action
-    this.logger.log(`Terminating simulation for user ${userId}, session ${sessionId}`);
+    this.logger.log(`Terminating simulation for user ${userId}, session ${fullSessionId}`);
+    
+    // Get the simulation if it exists
+    const simulation = this.getSimulationBySessionId(fullSessionId);
+    if (simulation) {
+      // Validate ownership
+      this.validateEntityOwnership(simulation, userId, 'Simulation', fullSessionId);
+      
+      // Terminate the simulation
+      this.terminateSimulation(simulation);
+      
+      // Broadcast terminated event
+      this.broadcastSimulationEvent(fullSessionId, 'simulation-terminated', {
+        current_time: simulation.currentTime
+      });
+      
+      // Remove from sessions map
+      this.sessions.delete(fullSessionId);
+    }
   }
   
   /**
@@ -983,15 +1147,26 @@ export class TradingEngineService extends BaseService<any> {
    */
   setDisplayTimeForCurrentUser(request: Request, sessionId: string, timeIndex: number): SimulationState {
     const userId = this.getUserIdFromRequest(request);
+    // Match original format: prepend 'session:' if not already there
+    const fullSessionId = sessionId.startsWith('session:') ? sessionId : `session:${sessionId}`;
     
-    // In a real implementation, we would fetch the simulation from storage
-    // For now, create a mock simulation for demonstration
-    const simulation = this.createMockSimulation(userId, sessionId);
+    this.logger.log(`Setting display time for user ${userId}, session ${fullSessionId}, time index ${timeIndex}`);
+    
+    // Get an existing simulation or create a new one
+    const simulation = this.getOrCreateSimulation(userId, fullSessionId);
     
     // Validate ownership
-    this.validateEntityOwnership(simulation, userId, 'Simulation', sessionId);
+    this.validateEntityOwnership(simulation, userId, 'Simulation', fullSessionId);
     
+    // Update time index
     this.updateTimeIndex(simulation, timeIndex);
+    
+    // Broadcast time update event
+    this.broadcastSimulationEvent(fullSessionId, 'display-time-updated', {
+      time_index: timeIndex,
+      current_time: simulation.currentTime
+    });
+    
     return simulation;
   }
   
@@ -1009,33 +1184,71 @@ export class TradingEngineService extends BaseService<any> {
     clientDisplayedTime: number
   ): any {
     const userId = this.getUserIdFromRequest(request);
+    // Match original format: prepend 'session:' if not already there
+    const fullSessionId = sessionId.startsWith('session:') ? sessionId : `session:${sessionId}`;
     
-    // In a real implementation, we would fetch the simulation from storage
-    // For now, create a mock simulation for demonstration
-    const simulation = this.createMockSimulation(userId, sessionId);
+    this.logger.log(`Syncing client time for user ${userId}, session ${fullSessionId}`);
+    
+    // Get an existing simulation or create a new one
+    const simulation = this.getOrCreateSimulation(userId, fullSessionId);
     
     // Validate ownership
-    this.validateEntityOwnership(simulation, userId, 'Simulation', sessionId);
+    this.validateEntityOwnership(simulation, userId, 'Simulation', fullSessionId);
     
-    return this.syncWithClient(simulation, clientTime, clientDisplayedTime);
+    // Sync with client
+    const syncResult = this.syncWithClient(simulation, clientTime, clientDisplayedTime);
+    
+    // Broadcast sync event
+    this.broadcastSimulationEvent(fullSessionId, 'client-sync', {
+      client_time: clientTime,
+      client_displayed_time: clientDisplayedTime,
+      server_time: syncResult.serverTime
+    });
+    
+    return syncResult;
   }
   
   /**
    * Get current data for the current user's simulation
    * @param request Express request
    * @param sessionId Simulation session ID
+   * @param fields Optional comma-separated list of fields to include
    */
-  getCurrentDataForCurrentUser(request: Request, sessionId: string): any {
+  getCurrentDataForCurrentUser(request: Request, sessionId: string, fields?: string): any {
     const userId = this.getUserIdFromRequest(request);
+    // Match original format: prepend 'session:' if not already there
+    const fullSessionId = sessionId.startsWith('session:') ? sessionId : `session:${sessionId}`;
     
-    // In a real implementation, we would fetch the simulation from storage
-    // For now, create a mock simulation for demonstration
-    const simulation = this.createMockSimulation(userId, sessionId);
+    this.logger.log(`Getting current data for user ${userId}, session ${fullSessionId}`);
+    
+    // Get existing simulation or create a new one
+    const simulation = this.getOrCreateSimulation(userId, fullSessionId);
+    
+    // If simulation is not active, start it
+    if (!simulation.active) {
+      this.logger.log(`Simulation ${fullSessionId} not active - starting it`);
+      this.startSimulation(simulation);
+      
+      // Since we're implicitly starting, broadcast this too
+      this.broadcastSimulationEvent(fullSessionId, 'simulation-started');
+    }
     
     // Validate ownership
-    this.validateEntityOwnership(simulation, userId, 'Simulation', sessionId);
+    this.validateEntityOwnership(simulation, userId, 'Simulation', fullSessionId);
     
-    return this.getCurrentData(simulation);
+    // Get the current data
+    const fullData = this.getCurrentData(simulation);
+    
+    // Always include timing information
+    fullData.server_timestamp = Date.now();
+    
+    // Broadcast update via WebSocket
+    this.broadcastSimulationEvent(fullSessionId, 'simulation-data-update', {
+      ...fullData,
+      type: 'current_data'
+    });
+    
+    return fullData;
   }
   
   /**
@@ -1047,13 +1260,16 @@ export class TradingEngineService extends BaseService<any> {
    */
   getTimeRangeForCurrentUser(request: Request, sessionId: string, startIndex: number, endIndex: number): any {
     const userId = this.getUserIdFromRequest(request);
+    // Match original format: prepend 'session:' if not already there
+    const fullSessionId = sessionId.startsWith('session:') ? sessionId : `session:${sessionId}`;
     
-    // In a real implementation, we would fetch the simulation from storage
-    // For now, create a mock simulation for demonstration
-    const simulation = this.createMockSimulation(userId, sessionId);
+    this.logger.log(`Getting time range for user ${userId}, session ${fullSessionId}, range ${startIndex}-${endIndex}`);
+    
+    // Get an existing simulation or create a new one
+    const simulation = this.getOrCreateSimulation(userId, fullSessionId);
     
     // Validate ownership
-    this.validateEntityOwnership(simulation, userId, 'Simulation', sessionId);
+    this.validateEntityOwnership(simulation, userId, 'Simulation', fullSessionId);
     
     return this.getTimeRange(simulation, startIndex, endIndex);
   }
@@ -1066,13 +1282,16 @@ export class TradingEngineService extends BaseService<any> {
    */
   handleUserInputForCurrentUser(request: Request, sessionId: string, input: string): any {
     const userId = this.getUserIdFromRequest(request);
+    // Match original format: prepend 'session:' if not already there
+    const fullSessionId = sessionId.startsWith('session:') ? sessionId : `session:${sessionId}`;
     
-    // In a real implementation, we would fetch the simulation from storage
-    // For now, create a mock simulation for demonstration
-    const simulation = this.createMockSimulation(userId, sessionId);
+    this.logger.log(`Handling user input for user ${userId}, session ${fullSessionId}: ${input}`);
+    
+    // Get an existing simulation or create a new one
+    const simulation = this.getOrCreateSimulation(userId, fullSessionId);
     
     // Validate ownership
-    this.validateEntityOwnership(simulation, userId, 'Simulation', sessionId);
+    this.validateEntityOwnership(simulation, userId, 'Simulation', fullSessionId);
     
     return this.handleUserInput(simulation, input);
   }
@@ -1084,26 +1303,17 @@ export class TradingEngineService extends BaseService<any> {
    */
   getResultsForCurrentUser(request: Request, sessionId: string): any {
     const userId = this.getUserIdFromRequest(request);
+    // Match original format: prepend 'session:' if not already there
+    const fullSessionId = sessionId.startsWith('session:') ? sessionId : `session:${sessionId}`;
     
-    // In a real implementation, we would fetch the simulation from storage
-    // For now, create a mock simulation for demonstration
-    const simulation = this.createMockSimulation(userId, sessionId);
+    this.logger.log(`Getting results for user ${userId}, session ${fullSessionId}`);
+    
+    // Get an existing simulation or create a new one
+    const simulation = this.getOrCreateSimulation(userId, fullSessionId);
     
     // Validate ownership
-    this.validateEntityOwnership(simulation, userId, 'Simulation', sessionId);
+    this.validateEntityOwnership(simulation, userId, 'Simulation', fullSessionId);
     
     return this.getResults(simulation);
-  }
-  
-  /**
-   * Create a mock simulation for demonstration purposes
-   * @param userId User ID
-   * @param sessionId Session ID
-   * @private
-   */
-  private createMockSimulation(userId: string, sessionId: string): SimulationState {
-    // This is only used for the demo - in a real implementation,
-    // we would fetch the simulation from a database or in-memory store
-    return this.createNewSimulation(userId, sessionId);
   }
 } 

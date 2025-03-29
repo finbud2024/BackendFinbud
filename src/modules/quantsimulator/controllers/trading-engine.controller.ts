@@ -29,7 +29,8 @@ export class TradingEngineController extends BaseController {
     @Req() request: Request,
     @Body() body: { sessionId?: string },
   ): SimulationState {
-    const sessionId = body.sessionId || `sim_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
+    // Let the service generate a proper sessionId if none is provided
+    const sessionId = body.sessionId || '';
     return this.tradingEngineService.createNewSimulationForCurrentUser(request, sessionId);
   }
 
@@ -48,16 +49,13 @@ export class TradingEngineController extends BaseController {
       trade: TradeDto;
     },
   ): SimulationState {
-    this.tradingEngineService.processTradeForCurrentUser(
+    return this.tradingEngineService.processTradeForCurrentUser(
       request,
       body.simulation,
       body.trade.type,
       body.trade.action,
       body.trade.id
     );
-    
-    // Return the updated simulation state
-    return body.simulation;
   }
 
   /**
@@ -85,11 +83,16 @@ export class TradingEngineController extends BaseController {
   startSimulation(
     @Req() request: Request,
     @Body() startSimulationDto: StartSimulationDto
-  ): SimulationState {
-    return this.tradingEngineService.startSimulationForCurrentUser(
+  ): any {
+    const simulation = this.tradingEngineService.startSimulationForCurrentUser(
       request, 
       { sessionId: startSimulationDto.sessionId }
     );
+    
+    return {
+      message: 'Simulation started!',
+      session_id: simulation.sessionId
+    };
   }
   
   /**
@@ -99,11 +102,13 @@ export class TradingEngineController extends BaseController {
   stopSimulation(
     @Req() request: Request,
     @Param('sessionId') sessionId: string
-  ): SimulationState {
-    return this.tradingEngineService.pauseSimulationForCurrentUser(
+  ): any {
+    this.tradingEngineService.pauseSimulationForCurrentUser(
       request,
       sessionId
     );
+    
+    return { message: 'Simulation paused' };
   }
   
   /**
@@ -113,11 +118,13 @@ export class TradingEngineController extends BaseController {
   resumeSimulation(
     @Req() request: Request,
     @Param('sessionId') sessionId: string
-  ): SimulationState {
-    return this.tradingEngineService.resumeSimulationForCurrentUser(
+  ): any {
+    this.tradingEngineService.resumeSimulationForCurrentUser(
       request,
       sessionId
     );
+    
+    return { message: 'Simulation resumed' };
   }
   
   /**
@@ -127,11 +134,13 @@ export class TradingEngineController extends BaseController {
   restartSimulation(
     @Req() request: Request,
     @Param('sessionId') sessionId: string
-  ): SimulationState {
-    return this.tradingEngineService.restartSimulationForCurrentUser(
+  ): any {
+    this.tradingEngineService.restartSimulationForCurrentUser(
       request,
       sessionId
     );
+    
+    return { message: 'Simulation restarted' };
   }
   
   /**
@@ -141,11 +150,13 @@ export class TradingEngineController extends BaseController {
   terminateSimulation(
     @Req() request: Request,
     @Param('sessionId') sessionId: string
-  ): void {
+  ): any {
     this.tradingEngineService.terminateSimulationForCurrentUser(
       request,
       sessionId
     );
+    
+    return { message: 'Simulation terminated' };
   }
   
   /**
@@ -156,12 +167,17 @@ export class TradingEngineController extends BaseController {
     @Req() request: Request,
     @Param('sessionId') sessionId: string,
     @Body() setDisplayTimeDto: SetDisplayTimeDto
-  ): SimulationState {
-    return this.tradingEngineService.setDisplayTimeForCurrentUser(
+  ): any {
+    const simulation = this.tradingEngineService.setDisplayTimeForCurrentUser(
       request,
       sessionId,
       setDisplayTimeDto.timeIndex
     );
+    
+    return { 
+      message: 'Display time updated',
+      current_time: simulation.currentTime
+    };
   }
   
   /**
@@ -208,7 +224,8 @@ export class TradingEngineController extends BaseController {
   ): any {
     return this.tradingEngineService.getCurrentDataForCurrentUser(
       request,
-      sessionId
+      sessionId,
+      fields
     );
   }
   
