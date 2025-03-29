@@ -16,10 +16,8 @@ import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { UpdateTransactionDto } from './dto/update-transaction.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { AdminGuard } from '../../common/guards/admin.guard';
-import { UserRole } from '../../common/decorators/user-role.decorator';
 import { TransactionDocument } from './entities/transaction.entity';
 import { Request } from 'express';
-import { ExceptionFactory } from '../../common/exceptions/app.exception';
 import { BaseController } from '../../common/base/base.controller';
 
 @Controller('transactions')
