@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Types } from 'mongoose';
+import { Document, Types, Schema as MongooseSchema } from 'mongoose';
 import { Comment, CommentSchema } from './comment.entity';
 
 @Schema({ timestamps: true })
@@ -24,9 +24,9 @@ export class Post extends Document {
       likes: { type: Number, default: 0 },
       likedUsers: { type: [Types.ObjectId], default: [] },
       comments: { type: Number, default: 0 },
-      shares: { type: Number, default: 0 }
+      shares: { type: Number, default: 0 },
     },
-    default: {}
+    default: () => ({}),
   })
   reactions: {
     likes: number;
@@ -34,6 +34,17 @@ export class Post extends Document {
     comments: number;
     shares: number;
   };
+
+  @Prop({ default: Date.now })
+  createdAt: Date;
+
+  @Prop({ default: Date.now })
+  updatedAt: Date;
+
 }
 
 export const PostSchema = SchemaFactory.createForClass(Post);
+
+// PostSchema.path('comments').schema.add({
+//   _id: { type: MongooseSchema.Types.ObjectId, auto: true },
+// });

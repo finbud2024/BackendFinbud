@@ -4,8 +4,7 @@ import { Post } from '../entities/post.entity';
 import { Model, Types } from 'mongoose';
 import { CreatePostDto } from '../dto/create-post.dto';
 import { CreateCommentDto } from '../dto/create-comment.dto';
-import { LikePostDto } from '../dto/like.dto';
-  import { LikeCommentDto } from '../dto/like.dto';
+import { LikePostDto, LikeCommentDto } from '../dto/like.dto';
 
 @Injectable()
 export class PostService {
@@ -16,7 +15,7 @@ export class PostService {
   async getAllPosts(): Promise<Post[]> {
     return this.postModel.find().populate('forumId authorId').exec();
   }
-  
+
   async createPost(dto: CreatePostDto): Promise<Post> {
     const newPost = new this.postModel({
       forumId: new Types.ObjectId(dto.forumId),
@@ -43,11 +42,12 @@ export class PostService {
   async likePost(postId: string, dto: LikePostDto) {
     const post = await this.postModel.findById(postId);
     if (!post) throw new NotFoundException('Post not found');
-  
+
     post.reactions = post.reactions || { likes: 0, likedUsers: [] };
-  
+
     const userObjectId = new Types.ObjectId(dto.userId);
     const userIndex = post.reactions.likedUsers.findIndex(id => id.equals(userObjectId));
+
     if (dto.action === 'like' && userIndex === -1) {
       post.reactions.likes += 1;
       post.reactions.likedUsers.push(userObjectId);
@@ -55,24 +55,26 @@ export class PostService {
       post.reactions.likes -= 1;
       post.reactions.likedUsers.splice(userIndex, 1);
     }
-  
+
     await post.save();
     return { success: true, likes: post.reactions.likes };
   }
-  
+
   async likeComment(postId: string, dto: LikeCommentDto) {
     const post = await this.postModel.findById(postId);
     if (!post) throw new NotFoundException('Post not found');
-  
+
     const comment = post.comments.find(
-        c => c._id && c._id.toString() === dto.commentId
-      );
+        c => String(c._id) === String(dto.commentId)
+    );
+
     if (!comment) throw new NotFoundException('Comment not found');
-  
+
     comment.reactions = comment.reactions || { likes: 0, likedUsers: [] };
-  
+
     const userObjectId = new Types.ObjectId(dto.userId);
     const userIndex = comment.reactions.likedUsers.findIndex(id => id.equals(userObjectId));
+
     if (dto.action === 'like' && userIndex === -1) {
       comment.reactions.likes += 1;
       comment.reactions.likedUsers.push(userObjectId);
@@ -80,7 +82,7 @@ export class PostService {
       comment.reactions.likes -= 1;
       comment.reactions.likedUsers.splice(userIndex, 1);
     }
-  
+
     await post.save();
     return { success: true, likes: comment.reactions.likes };
   }
@@ -89,19 +91,25 @@ export class PostService {
     const post = await this.postModel.findById(dto.postId);
     if (!post) throw new NotFoundException('Post not found');
 
-    const comment = {
+    const newComment = {
       _id: new Types.ObjectId(),
       authorId: new Types.ObjectId(dto.userId),
       body: dto.body,
       createdAt: new Date(),
-      reactions: { likes: 0, likedUsers: [] }
+      reactions: {
+        likes: 0,
+        likedUsers: [],
+      }
     };
 
-    post.comments.push(comment);
+    post.comments.push(newComment);
     post.reactions.comments += 1;
 
     await post.save();
 
-    return comment;
+    return {
+      message: 'Comment added successfully',
+      comment: newComment
+    };
   }
 }
